@@ -12,9 +12,9 @@
 - InfoCollector
    - Added new statement to condition for 'System Type', because some manufacturers declared type as 'Loptop' instead of 'Laptop'
    - Cleanup few variables (InfoCollector)
+   - Updated version number
 
 - GUI
-   - Updated version number
    - If testing computer type is desktop, it will skip screen and camera entry box test (Validation if they are not empty)
 
 - NBTest
