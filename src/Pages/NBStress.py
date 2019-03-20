@@ -90,9 +90,10 @@ class NBStress:
         maximum_cpu_value = 0
         maximum_gpu_value = 0
 
-        self.infocollector.get_sensors_output()
-        self.infocollector.get_temperature("CPU")
-        self.infocollector.get_temperature("GPU")
+        sensors = self.infocollector.get_sensors_output()
+        self.infocollector.update_cpu_temp(self.infocollector.cpu_Dict['Stats']['Temps'], sensors)
+        self.infocollector.update_gpu_temp(self.infocollector.gpu_Dict['Stats']['Temps'], sensors)
+
         self.infocollector.get_core_clock()
         label = "Stress"
 
@@ -106,9 +107,10 @@ class NBStress:
 
         # Get CPU Temperature
         if self.infocollector.cpu_Dict["Stats"]['Temps']["Dynamic"]:
+            cpu_temps = self.infocollector.cpu_Dict["Stats"]['Temps']
             color_index = 0
             self.temp_plot.clear()
-            for _key, _value in self.infocollector.cpu_Dict["Stats"]['Temps']['Dynamic'].items():
+            for _key, _value in cpu_temps['Dynamic'].items():
                 if maximum_cpu_value < _value[-1]:
                     maximum_cpu_value = _value[-1]
                 self.temp_plot.plot(_value, label=_key, color=self.cpuPlotColors[color_index])
@@ -116,33 +118,31 @@ class NBStress:
 
             label = ("  Stress\nCPU " + str(maximum_cpu_value) + " C")
             # If Stress is launched on CPU, compare it with max allowed critical temperature
-            if self.isStressingCPU and maximum_cpu_value >= self.infocollector.cpu_Dict['Stats']['Temps']["Critical"]:
+            if self.isStressingCPU and maximum_cpu_value >= cpu_temps["Critical"]:
                 if not self.isCPUOverheating:
                     self.cpuTempAtOverheat = maximum_cpu_value
                     self.cpuOverheatingText = "CPU is overheating! Allowed ' " + str(
-                        self.infocollector.cpu_Dict['Stats']['Temps'][
-                            "Critical"]) + " C' - At the moment it was overheating '" + str(maximum_cpu_value) + "'C"
+                        cpu_temps["Critical"]) + " C' - At the moment it was overheating '" + str(
+                        maximum_cpu_value) + "'C"
                     self.gui_base.throw_error_win(parent, "Overheating!", "CPU is overheating!\nAllowed ' " + str(
-                        self.infocollector.cpu_Dict['Stats']['Temps']["Critical"]) + " C' - Currently '" + str(
-                        maximum_cpu_value) + "'C")
+                        cpu_temps["Critical"]) + " C' - Currently '" + str(maximum_cpu_value) + "'C")
                 self.isCPUOverheating = True
             # If Stress isn't launched on CPU, compare it with max allowed temperature
-            elif not self.isStressingCPU and maximum_cpu_value >= self.infocollector.cpu_Dict['Stats']['Temps'][
-                "Maximum"]:
+            elif not self.isStressingCPU and maximum_cpu_value >= cpu_temps["Maximum"]:
                 if not self.isCPUOverheating:
                     self.cpuTempAtOverheat = maximum_cpu_value
                     self.cpuOverheatingText = "CPU is overheating! Allowed ' " + str(
-                        self.infocollector.cpu_Dict['Stats']['Temps'][
-                            "Maximum"]) + " C' - At the moment it was overheating '" + str(maximum_cpu_value) + "'C"
+                        cpu_temps["Maximum"]) + " C' - At the moment it was overheating '" + str(
+                        maximum_cpu_value) + "'C"
                     self.gui_base.throw_error_win(parent, "Overheating!", "CPU is overheating!\nAllowed ' " + str(
-                        self.infocollector.cpu_Dict['Stats']['Temps']["Maximum"]) + " C' - Currently '" + str(
-                        maximum_cpu_value) + "'C")
+                        cpu_temps["Maximum"]) + " C' - Currently '" + str(maximum_cpu_value) + "'C")
                 self.isCPUOverheating = True
 
         # GPU Temperature handling block, adjust label color and throw error if CPU overheats (75c.)
         if self.infocollector.gpu_Dict["Stats"]['Temps']["Dynamic"]:
+            gpu_temps = self.infocollector.gpu_Dict["Stats"]['Temps']
             color_index = 0
-            for _key, _value in self.infocollector.gpu_Dict["Stats"]['Temps']['Dynamic'].items():
+            for _key, _value in gpu_temps['Dynamic'].items():
                 if maximum_gpu_value < _value[-1]:
                     maximum_gpu_value = _value[-1]
                 self.temp_plot.plot(_value, label=_key, color=self.gpuPlotColors[color_index])
@@ -150,26 +150,24 @@ class NBStress:
 
             label += ("\nGPU " + str(maximum_gpu_value) + " C")
             # If Stress is launched on GPU, compare it with max allowed critical temperature
-            if self.isStressingGPU and maximum_gpu_value >= self.infocollector.gpu_Dict['Stats']['Temps']["Critical"]:
+            if self.isStressingGPU and maximum_gpu_value >= gpu_temps["Critical"]:
                 if not self.isGPUOverheating:
                     self.gpuTempAtOverheat = maximum_gpu_value
                     self.gpuOverheatingText = "GPU is overheating! Allowed ' " + str(
-                        self.infocollector.gpu_Dict['Stats']['Temps'][
-                            "Critical"]) + " C' - At the moment it was overheating '" + str(maximum_gpu_value) + "'C"
-                    self.gui_base.throw_error_win(parent, "Overheating!", "GPU is overheating!\nAllowed ' " +
-                                                  self.infocollector.gpu_Dict['Stats']['Temps'][
-                                                      "Critical"] + " C' - Currently '" + str(maximum_gpu_value) + "'C")
+                        gpu_temps["Critical"]) + " C' - At the moment it was overheating '" + str(
+                        maximum_gpu_value) + "'C"
+                    self.gui_base.throw_error_win(parent, "Overheating!", "GPU is overheating!\nAllowed ' " + gpu_temps[
+                        "Critical"] + " C' - Currently '" + str(maximum_gpu_value) + "'C")
                 self.isGPUOverheating = True
             # If Stress is launched on GPU, compare it with max allowed critical temperature
-            elif not self.isStressingGPU and maximum_gpu_value >= self.infocollector.gpu_Dict['Stats']['Temps'][
-                "Maximum"]:
+            elif not self.isStressingGPU and maximum_gpu_value >= gpu_temps["Maximum"]:
                 if not self.isGPUOverheating:
                     self.gpuTempAtOverheat = maximum_gpu_value
                     self.gpuOverheatingText = "GPU is overheating! Allowed ' " + str(
-                        self.infocollector.gpu_Dict['Stats']['Temps'][
-                            "Maximum"]) + " C' - At the moment it was overheating '" + str(maximum_gpu_value) + "'C"
-                    self.gui_base.throw_error_win(parent, "Overheating!", "GPU is overheating!\nAllowed '  " +
-                                                  self.infocollector.gpu_Dict['Stats']['Temps'][
+                        gpu_temps["Maximum"]) + " C' - At the moment it was overheating '" + str(
+                        maximum_gpu_value) + "'C"
+                    self.gui_base.throw_error_win(parent, "Overheating!",
+                                                  "GPU is overheating!\nAllowed '  " + gpu_temps[
                                                       "Maximum"] + " C' - Currently '" + str(maximum_gpu_value) + "'C")
                 self.isGPUOverheating = True
 
@@ -342,7 +340,7 @@ class NBStress:
         self.gpuStressTimer = 0
         if self.stressThread[1]:
             GLib.source_remove(self.stressThread[1])
-            self.stressThread[1] = None
+            self.stressThread[1] = ''
 
     @staticmethod
     def create_figure_plot(figure_size_x, figure_size_y, dpi, hspace='0', wspace='0'):

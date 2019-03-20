@@ -403,6 +403,8 @@ class NBSummary:
         box3, optical_label, self.otherOptical = self.gui_base.create_label_dropbox("Optical Device",
                                                                                     self.infocollector.avail_CDROMOptions,
                                                                                     value_boolean=self.infocollector.isCDROMDetected)
+        if self.infocollector.id_Dict["GUI"]["System Type"].get_text() == "Desktop":
+            self.otherCamera.set_active(1)
 
         box1.pack_start(camera_label, True, True, 0)
         box1.pack_start(self.otherCamera, True, True, 0)
@@ -481,6 +483,12 @@ class NBSummary:
         self.gui_base.create_label_entry_box("Category", self.infocollector.screen_Dict["GUI"]["Category"], box)
         self.gui_base.create_label_entry_box("Connection Type",
                                              self.infocollector.screen_Dict["GUI"]["Connection Type"], box)
+
+        if self.infocollector.id_Dict["GUI"]["System Type"].get_text() == "Desktop":
+            self.infocollector.screen_Dict["GUI"]["Diagonal"].set_text("N/A")
+            self.infocollector.screen_Dict["GUI"]["Resolution"].set_text("N/A")
+            self.infocollector.screen_Dict["GUI"]["Category"].set_text("N/A")
+            self.infocollector.screen_Dict["GUI"]["Connection Type"].set_text("N/A")
         box.show_all()
 
         # <- Other Functions

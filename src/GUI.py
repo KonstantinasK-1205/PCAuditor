@@ -1,7 +1,4 @@
 # Importing Class
-import json
-
-import requests
 
 from Events import *
 from GUITemplate import *
@@ -16,7 +13,7 @@ from Pages.NBTests import *
 class MyWindow(Gtk.Window):
     def __init__(self):
         global summary_thread, observations_thread, tests_thread, stress_thread, order_thread
-        Gtk.Window.__init__(self, default_width=1024, default_height=800,
+        Gtk.Window.__init__(self, default_width=800, default_height=640,
                             border_width=3, window_position=1)
         self.MainBox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
         self.connect("key-press-event", events.main_event_parser)
@@ -340,24 +337,26 @@ class MyWindow(Gtk.Window):
         if not self.check_variable_value(infocollector.gpu_Dict["GUI"]["1 Model"], "iGPU Model cannot be empty!"):
             return False
 
-        if not self.check_variable_value(infocollector.screen_Dict["GUI"]["Diagonal"],
-                                         "Display Diagonal cannot be empty!"):
-            return False
-        if not self.check_variable_value(infocollector.screen_Dict["GUI"]["Resolution"],
-                                         "Display Resolution cannot be empty!"):
-            return False
-        if not self.check_variable_value(infocollector.screen_Dict["GUI"]["Category"],
-                                         "Display Category cannot be empty!"):
-            return False
-        if not self.check_variable_value(infocollector.screen_Dict["GUI"]["Connection Type"],
-                                         "Display Type cannot be empty!"):
-            return False
+        if infocollector.id_Dict["GUI"]["System Type"].get_text() == "Laptop":
+            if not self.check_variable_value(infocollector.screen_Dict["GUI"]["Diagonal"],
+                                             "Display Diagonal cannot be empty!"):
+                return False
+            if not self.check_variable_value(infocollector.screen_Dict["GUI"]["Resolution"],
+                                             "Display Resolution cannot be empty!"):
+                return False
+            if not self.check_variable_value(infocollector.screen_Dict["GUI"]["Category"],
+                                             "Display Category cannot be empty!"):
+                return False
+            if not self.check_variable_value(infocollector.screen_Dict["GUI"]["Connection Type"],
+                                             "Display Type cannot be empty!"):
+                return False
 
+        if infocollector.id_Dict["GUI"]["System Type"].get_text() == "Laptop":
+            if not self.check_variable_value(nbSummary.otherCamera, "Camera dropbox cannot be empty"):
+                return False
         if not self.check_variable_value(nbSummary.otherOptical, "Optical Device dropbox cannot be empty"):
             return False
         if not self.check_variable_value(nbSummary.otherLicense, "License dropbox cannot be empty"):
-            return False
-        if not self.check_variable_value(nbSummary.otherCamera, "Camera dropbox cannot be empty"):
             return False
         if not self.check_variable_value(nbSummary.tester, "Tester dropbox cannot be empty"):
             return False

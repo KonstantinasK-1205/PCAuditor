@@ -46,7 +46,7 @@ class NBTests:
             'CLK', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '\\', '|NL|',
             'Shift_L', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '.', ',', '/', 'Shift_R', '|NL|',
             'Control_L', 'Super_L', 'Alt_L', 'Space', 'Alt_R', 'Super_R', 'Control_R',
-            '|NL|', '|Vx|', '|NL|',
+            '|NL|',
             '|Hx|', '|Hx|', '|Hx|', 'Prnt\nScrn', 'Scr\nLck', 'Pause', '|Hx|', 'Num\nLock', 'KP_/', 'KP_*', 'KP_-',
             '|NL|',
             '|Hx|', '|Hx|', '|Hx|', 'Insert', 'Home', 'Page\nUp', '|Hx|', 'KP_7', 'KP_8', 'KP_9', 'KP_+', '|NL|',
@@ -296,9 +296,9 @@ class NBTests:
                 continue
 
             if '|Hx|' in keycap:
-                button = Gtk.Label(label='          ')
+                button = Gtk.Label(label='')
             elif '|Vx|' in keycap:
-                button = Gtk.Label(label='          ', angle=90)
+                button = Gtk.Label(label='', angle=90)
             else:
                 button = self.gui_base.create_button(keycap, _function='', _tooltip="Pressed: False")
 
@@ -450,4 +450,4 @@ class NBTests:
     # USB Functions
     @staticmethod
     def interface_changed(_signal, _iface, *_args):
-        print("Received something... " + _args)
+        print("Received something... " + str(_args))

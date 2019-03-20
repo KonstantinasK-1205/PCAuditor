@@ -171,21 +171,19 @@ class InfoCollector:
     def __init__(self):
         # Main Variables and CLI Option Parser      
         self.appTitle = "PC Auditor"
-        self.appVersion = "v.5.2.6"
+        self.appVersion = "v.5.3"
 
-        self.maximumIterations = 100  # Maximum amount of each piece of hardware
-
+        self.debug_categories = dict()
         self.isSingleThread = True  # Do we want to run application on single thread only?
         self.isDebugOn = False  # Simple debug mode
         self.logFilterLevel = 0  # Log Filter Level, for debug, from 0 to 4
         self.isAdvancedDebug = False  # Advanced debug, etc. time elapsed between commands
         self.lastFunctionTime = 0  # For AD, how much ms passed since last function
-        self.debug_categories = dict()
-        self.outputFile = None
         self.isDataCheckOff = False  # Data Rechecking, skips keyboard test and etc.
         self.isOutputModeOn = False  # If we need to write debug log to file
         self.isIPManuallySet = False  # If user manually set server ip
-        self.parsedIP = 0  # User manually setted IP
+        self.parsedIP = 0  # User manually entered IP
+        self.outputFile = None
         self.parse_cli_arg()
 
         # Init all dicts
@@ -202,19 +200,11 @@ class InfoCollector:
         self.currentDriveTry = 0
         self.currentBatTry = 0
 
-        self.sensors_output = None
         self.gpu_Output = None
         self.drive_Output = None
         self.bat_Output = None
         self.isCDROMDetected = None
         self.isCameraDetected = None
-
-        self.isCPUMaximumTempSet = None
-        self.isCPUCriticalTempSet = None
-        self.cpuTempFirstLevel = None
-        self.isGPUMaximumTempSet = None
-        self.isGPUCriticalTempSet = None
-        self.gpuTempFirstLevel = None
 
         # OBS  Variable  Initialization
         self.observations = dict()
@@ -254,7 +244,12 @@ class InfoCollector:
                                "Win 10", "Win 10 Pro"]
         self.debug_info("Information", "All Variables initilizated\n")
 
-        # Load LSHW Output, either from file or from command
+        self.cpu_temp_key = None
+        self.cpu_sensors = None
+
+        self.gpu_temp_key = None
+        self.gpu_sensors = None
+
         self.lshw_Output = self.load_system_information("lshw.log", ['lshw', '-disable', 'SCSI'], "System", "lshw")
 
         if not self.isSingleThread:
@@ -413,21 +408,11 @@ class InfoCollector:
         self.get_system_information()
 
     def init_main_hardware_information(self):
-        self.isCPUMaximumTempSet = False
-        self.isCPUCriticalTempSet = False
-        self.cpuTempFirstLevel = None
-
-        self.isGPUMaximumTempSet = False
-        self.isGPUCriticalTempSet = False
-        self.gpuTempFirstLevel = None
-
         self.cpu_Dict["Collected"] = {}
         self.cpu_Dict["GUI"] = {}
         self.cpu_Dict["Stats"] = {}
         self.cpu_Dict["Stats"]["Temps"] = {}
         self.cpu_Dict["Stats"]["Temps"]["Dynamic"] = {}
-        self.cpu_Dict['Stats']['Temps']["Maximum"] = 70
-        self.cpu_Dict['Stats']['Temps']["Critical"] = 90
         self.cpu_Dict["Stats"]["Clock"] = {}
         self.get_cpu()
 
@@ -436,8 +421,6 @@ class InfoCollector:
         self.gpu_Dict["Stats"] = {}
         self.gpu_Dict["Stats"]["Temps"] = {}
         self.gpu_Dict["Stats"]["Temps"]["Dynamic"] = {}
-        self.gpu_Dict['Stats']['Temps']["Maximum"] = 70
-        self.gpu_Dict['Stats']['Temps']["Critical"] = 85
         self.gpu_Dict["Stats"]["Clock"] = {}
         self.get_gpu()
 
@@ -567,6 +550,8 @@ class InfoCollector:
                 sys_type = "Laptop"
             elif "laptop" in sys_type:
                 sys_type = "Laptop"
+            elif "loptop" in sys_type:
+                sys_type = "Laptop"
             elif "desktop" in sys_type:
                 sys_type = "Desktop"
             elif "tower" in sys_type:
@@ -649,7 +634,7 @@ class InfoCollector:
         total_amount = 0
         iter_no = 0
 
-        while 1:
+        for iter_no in range(32):
             if iter_no == 0:
                 master_pattern = re.compile(r'\*-bank[\s\S]+?(?=\*)')
             else:
@@ -693,7 +678,7 @@ class InfoCollector:
                     iter_no += 1
                 continue
             else:
-                break
+                continue
 
         if "Total Amount" not in self.ram_Dict['Collected']:
             self.ram_Dict['Collected']["Total Amount"] = str(total_amount) + " GB"
@@ -955,8 +940,8 @@ class InfoCollector:
                     self.isCameraDetected = False
                     if os.path.isfile(path):
                         # self.debug_info("Error", "\tCouldn't launch luvcview!")
-                        process = subprocess.Popen([str(path) + " " + argument], shell=True, stdout=subprocess.DEVNULL)
-                        # self.debug_info("Information", "Camera was found, and software was launched")
+                        subprocess.Popen([str(path) + " " + argument], shell=True, stdout=subprocess.DEVNULL)
+                        self.debug_info("Information", "Camera was found, and software was launched")
                         self.isCameraDetected = True
         except Exception as e:
             self.debug_info("Exception", "\tCouldn't get Camera\n " + str(e))
@@ -980,74 +965,112 @@ class InfoCollector:
                 else:
                     break
 
-    def get_sensors_output(self):
-        self.sensors_output = subprocess.check_output(["sensors"]).decode('utf-8')
+    @staticmethod
+    def get_sensors_output():
+        output = subprocess.run(["sensors", "-j"], stdout=subprocess.PIPE, encoding='utf-8').stdout
+        # with open("Sensors.log", 'r') as tmp:
+        #      output = tmp.read()
+        return json.loads(output)
 
-    def get_temperature(self, text):
-        matched_pattern = ''
-        if "CPU" in text:
-            if "amd" in self.cpu_Dict["Collected"]["Manufacturer"].lower():
-                if 'k10temp' in self.sensors_output:
-                    self.use_regex(self.sensors_output, "CPU", "temp1",
-                                   r"(?m)^k10temp.*(?:(?:\r\n|[\r\n]).+$)*[\s\S](temp1).+?(\+[0-9]{1,}(\.[0-9]{1,})?|\()",
-                                   self.cpu_Dict["Collected"]["Model"])
-                elif 'k8temp' in self.sensors_output:
-                    self.use_regex(self.sensors_output, "CPU", "Core0", r"(Core0) Temp.*?([0-9]{1,}(\.[0-9]{1,})?)")
-                    self.use_regex(self.sensors_output, "CPU", "Core1", r"(Core1) Temp.*?([0-9]{1,}(\.[0-9]{1,})?)")
-
+    def update_cpu_temp(self, cpu_dict, sensors):
+        # Single time - Find CPU Main Sensors Name
+        if not self.cpu_temp_key:
+            if 'intel' in self.cpu_Dict["Collected"]["Manufacturer"].lower():
+                cpu_regex = 'coretemp'
+            elif 'amd' in self.cpu_Dict["Collected"]["Manufacturer"].lower():
+                cpu_regex = 'k[0-9]+temp'
             else:
-                self.use_regex(self.sensors_output, "CPU", "Package id",
-                               r"(Package id 0:).*?(\+[0-9]{1,}(\.[0-9]{1,})?)")
-                self.use_regex(self.sensors_output, "CPU", "Core 0", r"(Core.?0).*?(\+[0-9]{1,}(\.[0-9]{1,})?)")
-                self.use_regex(self.sensors_output, "CPU", "Core 1", r"(Core.?1).*?(\+[0-9]{1,}(\.[0-9]{1,})?)")
-                self.use_regex(self.sensors_output, "CPU", "Core 2", r"(Core.?2).*?(\+[0-9]{1,}(\.[0-9]{1,})?)")
-                self.use_regex(self.sensors_output, "CPU", "Core 3", r"(Core.?3).*?(\+[0-9]{1,}(\.[0-9]{1,})?)")
-                self.use_regex(self.sensors_output, "CPU", "Core 4", r"(Core.?4).*?(\+[0-9]{1,}(\.[0-9]{1,})?)")
-                self.use_regex(self.sensors_output, "CPU", "Core 5", r"(Core.?5).*?(\+[0-9]{1,}(\.[0-9]{1,})?)")
-                self.use_regex(self.sensors_output, "CPU", "Core 6", r"(Core.?6).*?(\+[0-9]{1,}(\.[0-9]{1,})?)")
-                self.use_regex(self.sensors_output, "CPU", "Core 7", r"(Core.?7).*?(\+[0-9]{1,}(\.[0-9]{1,})?)")
-                self.use_regex(self.sensors_output, "CPU", "Core 8", r"(Core.?8).*?(\+[0-9]{1,}(\.[0-9]{1,})?)")
-        elif "GPU" in text:
-            # First GPU Tem
-            if "intel" in self.gpu_Dict["Collected"]["1 Manufacturer"].lower():
-                matched_pattern = None
-            elif "nvidia" in self.gpu_Dict["Collected"]["1 Manufacturer"].lower():
-                matched_pattern = self.use_regex(self.sensors_output, "GPU", "nouveau",
-                                                 r"(?m)^nouveau.*(?:(?:\r\n|[\r\n]).+$)*[\s\S](temp1).+?(\+[0-9]{1,"
-                                                 r"}(\.[0-9]{1,})?|\()",
-                                                 self.gpu_Dict["Collected"]["1 Model"])
-            elif "amd" in self.gpu_Dict["Collected"]["1 Manufacturer"].lower():
-                matched_pattern = self.use_regex(self.sensors_output, "GPU", "radeon",
-                                                 r"(?m)^radeon.*(?:(?:\r\n|[\r\n]).+$)*[\s\S](temp1).+?(\+[0-9]{1,"
-                                                 r"}(\.[0-9]{1,})?|\()",
-                                                 self.gpu_Dict["Collected"]["1 Model"])
-                if not matched_pattern:
-                    matched_pattern = self.use_regex(self.sensors_output, "GPU", "amdgpu",
-                                                     r"(?m)^amdgpu.*(?:(?:\r\n|[\r\n]).+$)*[\s\S](temp1).+?(\+["
-                                                     r"0-9]{1,}(\.[0-9]{1,})?|\()",
-                                                     self.gpu_Dict["Collected"]["1 Model"])
+                return
+            for _key, _value in sensors.items():
+                if re.search(cpu_regex, _key):
+                    self.cpu_temp_key = _key
+                    break
 
-            # Second GPU Temp
-            if "intel" in self.gpu_Dict["Collected"]["2 Manufacturer"].lower():
-                matched_pattern = None
-            elif "nvidia" in self.gpu_Dict["Collected"]["2 Manufacturer"].lower():
-                matched_pattern = self.use_regex(self.sensors_output, "GPU", "nouveau",
-                                                 r"(?m)^nouveau.*(?:(?:\r\n|[\r\n]).+$)*[\s\S](temp1).+?(["
-                                                 r"0-9]{1,}(\.[0-9]{1,})?|\()",
-                                                 self.gpu_Dict["Collected"]["2 Model"])
-            elif "amd" in self.gpu_Dict["Collected"]["2 Manufacturer"].lower():
-                matched_pattern = self.use_regex(self.sensors_output, "GPU", "radeon",
-                                                 r"(?m)^radeon.*(?:(?:\r\n|[\r\n]).+$)*[\s\S](temp1).+?(["
-                                                 r"0-9]{1,}(\.[0-9]{1,})?|\()",
-                                                 self.gpu_Dict["Collected"]["2 Model"])
-                if not matched_pattern:
-                    matched_pattern = self.use_regex(self.sensors_output, "GPU", "amdgpu",
-                                                     r"(?m)^amdgpu.*(?:(?:\r\n|[\r\n]).+$)*[\s\S](temp1).+?(\+[0-9]{"
-                                                     r"1,}(\.[0-9]{1,})?|\()",
-                                                     self.gpu_Dict["Collected"]["2 Model"])
-        else:
-            matched_pattern = ""
-        return matched_pattern
+        # Single time - Find Max & Critical temperatures and Find all sensors values
+        if not self.cpu_sensors and self.cpu_temp_key:
+            self.cpu_sensors = []
+            for _key, _value in sensors[self.cpu_temp_key].items():
+                if isinstance(_value, dict):
+                    for _sub_key, _sub_value in sensors[self.cpu_temp_key][_key].items():
+                        if 'Maximum' not in cpu_dict and 'max' in _sub_key:
+                            cpu_dict["Maximum"] = _sub_value
+                        if 'Critical' not in cpu_dict and 'crit' in _sub_key:
+                            cpu_dict["Critical"] = _sub_value
+                            if 'Maximum' not in cpu_dict:
+                                cpu_dict["Maximum"] = _sub_value - 15
+
+                        if 'input' in _sub_key:
+                            _sensor = [_key, _sub_key]
+                            if _key not in cpu_dict["Dynamic"]:
+                                cpu_dict["Dynamic"][_key] = []
+                            self.cpu_sensors.append(_sensor)
+
+        # Update CPU Temperatures
+        if self.cpu_temp_key:
+            source_dict = sensors[self.cpu_temp_key]
+            destination_dict = cpu_dict["Dynamic"]
+            for _iter in range(len(self.cpu_sensors)):
+                _main_key = self.cpu_sensors[_iter][0]
+                _sub_key = self.cpu_sensors[_iter][1]
+
+                destination_dict[_main_key].append(source_dict[_main_key][_sub_key])
+
+    def update_gpu_temp(self, gpu_dict, sensors):
+        # Single time - Find GPU Main Sensors Name
+        if not self.gpu_temp_key:
+            self.gpu_temp_key = []
+            possible_gpu_regex = []
+            if 'nvidia' in self.gpu_Dict["Collected"]["1 Manufacturer"].lower():
+                possible_gpu_regex.append('nouveau')
+            elif 'amd' in self.gpu_Dict["Collected"]["1 Manufacturer"].lower():
+                possible_gpu_regex.append('radeon')
+                possible_gpu_regex.append('amdgpu')
+
+            if 'nvidia' in self.gpu_Dict["Collected"]["2 Manufacturer"].lower():
+                possible_gpu_regex.append('nouveau')
+            elif 'amd' in self.gpu_Dict["Collected"]["2 Manufacturer"].lower():
+                possible_gpu_regex.append('radeon')
+                possible_gpu_regex.append('amdgpu')
+
+            for _key, _value in sensors.items():
+                for regex in possible_gpu_regex:
+                    if re.findall(regex, _key):
+                        if _key not in self.gpu_temp_key:
+                            self.gpu_temp_key.append(_key)
+
+        # Single time - Find Max & Critical temperatures and Find all sensors values
+        if not self.gpu_sensors and self.gpu_temp_key:
+            self.gpu_sensors = []
+            for _sensor in self.gpu_temp_key:
+                for _key, _value in sensors[_sensor].items():
+                    if isinstance(_value, dict):
+                        for _sub_key, _sub_value in sensors[_sensor][_key].items():
+                            if 'Maximum' not in gpu_dict and 'max' in _sub_key:
+                                gpu_dict["Maximum"] = _sub_value
+                                continue
+                            if 'Critical' not in gpu_dict and 'crit' in _sub_key:
+                                gpu_dict["Critical"] = _sub_value
+                                if 'Maximum' not in gpu_dict:
+                                    gpu_dict["Maximum"] = _sub_value - 15
+                                continue
+
+                            if _sensor not in gpu_dict["Dynamic"]:
+                                gpu_dict["Dynamic"][_sensor] = []
+
+                            if 'temp' in _sub_key and 'input' in _sub_key:
+                                _values = [_key, _sub_key]
+                                self.gpu_sensors.append(_values)
+
+        # Update CPU Temperatures
+        if self.gpu_temp_key:
+            for _sensor in self.gpu_temp_key:
+                source_dict = sensors[_sensor]
+                destination_dict = gpu_dict["Dynamic"]
+                for _iter in range(len(self.gpu_sensors)):
+                    _main_key = self.gpu_sensors[_iter][0]
+                    _sub_key = self.gpu_sensors[_iter][1]
+                    destination_dict[_sensor].append(source_dict[_main_key].get(_sub_key, 0))
+                    # print(destination_dict)
 
     # < Other (Unsorted) Functions
     @staticmethod
@@ -1072,47 +1095,6 @@ class InfoCollector:
         except re.error:
             return ""
 
-    def use_regex(self, output, main_category, main_var, pattern, data=''):
-        matched = ''
-        if "CPU" in main_category:
-            # WORKS - 100% | Intel 4Gen
-            if main_var.lower() in output.lower():
-                try:
-                    search_pattern = re.compile(pattern)
-                    matched = re.search(search_pattern, output)
-                    if matched is not None:
-                        if data:
-                            keyword = data
-                        else:
-                            keyword = matched.group(1).replace(':', '')
-                        value = matched.group(2).replace('+', '')
-                        if keyword not in self.cpu_Dict["Stats"]["Temps"]["Dynamic"]:
-                            self.cpu_Dict["Stats"]["Temps"]["Dynamic"][keyword] = []
-                        self.cpu_Dict["Stats"]["Temps"]["Dynamic"][keyword].append(float(value))
-                except re.error:
-                    return "N/A"
-            else:
-                return "N/A"
-        if "GPU" in main_category:
-            if main_var.lower() in output.lower():
-                try:
-                    search_pattern = re.compile(pattern)
-                    matched = re.search(search_pattern, output)
-                    if matched is not None:
-                        if "(" == matched.group(2):
-                            value = 0
-                        else:
-                            value = matched.group(2).replace('+', '')
-                        matched = value
-                        if data not in self.gpu_Dict["Stats"]["Temps"]["Dynamic"]:
-                            self.gpu_Dict["Stats"]["Temps"]["Dynamic"][data] = []
-                        self.gpu_Dict["Stats"]["Temps"]["Dynamic"][data].append(float(value))
-                except re.error:
-                    return "N/A"
-            else:
-                return "N/A"
-        return matched
-
     @staticmethod
     def manage_photos(_device_sn, _device_model, _picture_list):
         if len(_picture_list) > 0:
@@ -1122,6 +1104,33 @@ class InfoCollector:
         else:
             tar_path = ''
         return tar_path
+
+    @staticmethod
+    def decode_intel_gpu(text):
+        if "haswell-ult" in text.lower().lstrip(''):
+            text = "HD Graphics (Haswell ULT)"
+
+        elif "4th gen" in text.lower().lstrip(''):
+            text = "HD Graphics (Haswell)"
+
+        elif "3rd gen" in text.lower().lstrip(''):
+            text = "HD Graphics 4000"
+
+        elif "2nd gen" in text.lower().lstrip(''):
+            text = "HD Graphics 3000"
+
+        elif "core processor" in text.lower().lstrip(''):
+            text = "HD Graphics (Ironlake)"
+
+        elif "atom/" in text.lower().lstrip('') or \
+                "x5-E8000/J3xxx" in text.lower().lstrip(''):
+            text = "HD Graphics (Atom/Celeron)"
+
+        elif "atom proccesor" in text.lower().lstrip('') or \
+                "Z36xxx" in text.lower().lstrip('') or \
+                "Z37xxx" in text.lower().lstrip(''): \
+                text = "HD Graphics (z3[6-7]xxx)"
+        return text
 
     def replace_strings(self, title, string):
         unwanted_strings = []
@@ -1148,35 +1157,7 @@ class InfoCollector:
 
         for replacement in unwanted_strings:
             string = string.replace(replacement[0], replacement[1])
-            string = re.sub('^ +', '', string)
-            string = re.sub(' +', ' ', string)
-            string = re.sub(' +$', '', string.strip())
+            string = re.sub(r'^ +', '', string)
+            string = re.sub(r' +', ' ', string)
+            string = re.sub(r' +$', '', string.strip())
         return string
-
-    @staticmethod
-    def decode_intel_gpu(text):
-        if "haswell-ult" in text.lower().lstrip(''):
-            text = "HD Graphics (Haswell ULT)"
-        elif "4th gen" in text.lower().lstrip(''):
-            text = "HD Graphics (Haswell)"
-        elif "3rd gen" in text.lower().lstrip(''):
-            text = "HD Graphics 4000"
-        elif "2nd gen" in text.lower().lstrip(''):
-            text = "HD Graphics 3000"
-        elif "core processor" in text.lower().lstrip(''):
-            text = "HD Graphics (Ironlake)"
-
-        elif "atom/celeron" in text.lower().lstrip(''):
-            text = "HD Graphics (Atom/Celeron)"
-        elif "atom/pentium" in text.lower().lstrip(''):
-            text = "HD Graphics (Atom/Celeron)"
-        elif "x5-E8000/J3xxx" in text.lower().lstrip(''):
-            text = "HD Graphics (Atom/Celeron)"
-
-        elif "atom proccesor" in text.lower().lstrip(''):
-            text = "HD Graphics (z3[6-7]xxx)"
-        elif "Z36xxx" in text.lower().lstrip(''):
-            text = "HD Graphics (z3[6-7]xxx)"
-        elif "Z37xxx" in text.lower().lstrip(''):
-            text = "HD Graphics (z3[6-7]xxx)"
-        return text
