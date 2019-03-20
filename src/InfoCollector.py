@@ -528,9 +528,10 @@ class InfoCollector:
 
         # Manufacturer
         manufacturer = self.get_regex_info(r"\bvendor\:(.*)", master_string, 'search', 1)
-        if manufacturer:
+        try:
             manufacturer = self.replace_strings("Manufacturer", manufacturer)
-
+        except AttributeError:
+            manufacturer = ''
         # System Model
         if 'lenovo' not in manufacturer.lower():
             _regex = r'\bproduct\:(.*)'
@@ -632,7 +633,6 @@ class InfoCollector:
     def get_rams(self):
         self.debug_info("Information", "RAM Information - Initialization")
         total_amount = 0
-        iter_no = 0
 
         for iter_no in range(32):
             if iter_no == 0:
