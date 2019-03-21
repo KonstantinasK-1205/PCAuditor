@@ -437,8 +437,8 @@ class NBSummary:
 
     def create_battery_info_extended(self, box):
         self.togBooleans['BAT']['Box'] = box
-        for iter_ in range(1, self.infocollector.battery_Dict["Collected"]["No"]):
-            if iter_ > 1:
+        for iter_ in range(0, self.infocollector.battery_Dict["Collected"]["No"]):
+            if iter_ > 0:
                 self.gui_base.create_label('', box)
 
             keyword = str(iter_) + " Battery"

@@ -242,7 +242,8 @@ class MyWindow(Gtk.Window):
         infocollector.init_battery_information()
         for child in nbSummary.togBATBox.get_children():
             child.destroy()
-        guiTemplate.create_BatteryInformation(nbSummary.togBATBox)
+        nbSummary.create_battery_info_extended(nbSummary.togBATBox)
+        nbSummary.toggle_field(nbSummary.togBATBttn, 'BAT')
 
     @staticmethod
     def re_init_drive(_button, _field):
@@ -253,8 +254,10 @@ class MyWindow(Gtk.Window):
 
         for child in nbSummary.togOtherBox.get_children():
             child.destroy()
-        guiTemplate.create_DriveInformation(nbSummary.togDriveBox)
-        guiTemplate.create_OtherInformation(nbSummary.togOtherBox)
+        nbSummary.create_drive_info_extended(nbSummary.togDriveBox)
+        nbSummary.create_other_info_extended(nbSummary.togOtherBox)
+        nbSummary.toggle_field(nbSummary.togDriveBttn, 'Drive')
+        nbSummary.toggle_field(nbSummary.togOtherBttn, 'Other')
 
     def check_variable_value(self, _dict, error_mssg):
         if isinstance(_dict, Gtk.SpinButton):

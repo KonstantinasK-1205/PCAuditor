@@ -31,7 +31,7 @@ class NBStress:
         self.ExecutionTime = 0
         self.cpuStressTimer = 0
         self.gpuStressTimer = 0
-        self.cooloff_time = 10
+        self.cooloff_time = 15
 
         self.isStressingCPU = False
         self.isStressingGPU = False

@@ -1,11 +1,11 @@
 import datetime
 import getopt
-import os
 import re
 import subprocess
 import sys
 import warnings
 
+from HWGathering.BatteryParser import *
 from Server import *
 
 warnings.simplefilter("ignore")
@@ -452,11 +452,15 @@ class InfoCollector:
         self.get_cdrom()
 
     def init_battery_information(self):
-        self.bat_Output = self.load_information_output("Battery", "BatteryBenchmark.log", 5)
+        self.debug_info("Information", "Battery Information Started")
+        battery_class.__init__()
+        battery_class.get_batteries()
+        battery_class.update_battery()
+
         self.battery_Dict["Collected"] = {}
-        self.battery_Dict["Collected"]["No"] = 1
+        self.battery_Dict["Collected"] = battery_class.batteries
         self.battery_Dict["GUI"] = {}
-        self.get_batteries()
+        self.debug_info("Information", "Battery Information Finished")
 
     # < File Functions | Loading and Reading
     def load_system_information(self, filename, command, category, variable):
@@ -780,38 +784,6 @@ class InfoCollector:
                 self.isCDROMDetected = True
                 iter_no += 1
                 continue
-            else:
-                break
-
-    def get_batteries(self):
-        self.debug_info("Information", "Battery Information - Initialization")
-        tags = ['Serial', 'Model', 'Current Wh', 'Maximum Wh', 'Factory Wh', 'Wear Level', 'Estimated']
-        iter_no = 1
-
-        while 1:
-            iter_str = "Battery " + str(iter_no)
-            if iter_str in self.bat_Output:
-                keyword = str(self.battery_Dict['Collected']["No"]) + " Battery"
-                master = self.get_regex_info(iter_str + r'[\s\S]+?\=+\n?', self.bat_Output, 'search', 0)
-                if master:
-                    self.bat_Output = self.bat_Output.replace(master, '')
-                    self.battery_Dict['Collected'][keyword] = {}
-                if not master:
-                    break
-
-                bat_loc = self.get_regex_info(r'Ident: (.+)', master, 'search', 1)
-                if bat_loc:
-                    master = master.replace(iter_str + ' - Ident: ' + bat_loc, '')
-                    for _tag in tags:
-                        info = self.get_regex_info(_tag + r': (.+)', master, 'search', 1).rstrip('\n')
-                        master = master.replace(iter_str + ' - ' + _tag + ': ' + info, '')
-                        self.battery_Dict['Collected'][keyword][_tag] = info
-                    self.battery_Dict['Collected']["No"] += 1
-                    self.debug_info("Information", "\tBattery Information - " + iter_str + " loaded!")
-                    iter_no += 1
-                    continue
-                else:
-                    break
             else:
                 break
 
@@ -1155,3 +1127,6 @@ class InfoCollector:
             string = re.sub(r' +', ' ', string)
             string = re.sub(r' +$', '', string.strip())
         return string
+
+
+battery_class = BatteryParser()
