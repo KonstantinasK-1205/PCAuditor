@@ -16,6 +16,7 @@ class InfoCollector:
                                  ("Asus", "ASUS"),
                                  ("ASUS.", "ASUS"),
                                  ("ASUSTeK Computer", "ASUS"),
+                                 ("ASUSTeK COMPUTER", "ASUS"),
                                  ("Advanced Micro Devices", "AMD"),
                                  ("[AMD]", ""),
                                  ("lenovo", "Lenovo"),
@@ -160,6 +161,7 @@ class InfoCollector:
                               ("Lenovo Thinkpad", ""),
                               ("Lenovo", ""),
                               ("PC Partner Limited /", ""),
+                              ("PCIE VGA Display Adapter", ""),
                               ("Sapphire Technology Radeon", ""),
                               ("Samsung Electronics Co Ltd", ""),
                               ("Toshiba America Info Systems", ""),
@@ -528,10 +530,8 @@ class InfoCollector:
 
         # Manufacturer
         manufacturer = self.get_regex_info(r"\bvendor\:(.*)", master_string, 'search', 1)
-        try:
+        if manufacturer:
             manufacturer = self.replace_strings("Manufacturer", manufacturer)
-        except AttributeError:
-            manufacturer = ''
         # System Model
         if 'lenovo' not in manufacturer.lower():
             _regex = r'\bproduct\:(.*)'
@@ -968,9 +968,13 @@ class InfoCollector:
     @staticmethod
     def get_sensors_output():
         output = subprocess.run(["sensors", "-j"], stdout=subprocess.PIPE, encoding='utf-8').stdout
-        # with open("Sensors.log", 'r') as tmp:
-        #      output = tmp.read()
-        return json.loads(output)
+        new = ''
+        #        with open("Sensors.log", 'r') as tmp:
+        #              output = tmp.read()
+        for line in output.splitlines():
+            if not re.search(r'^,$', line):
+                new += line
+        return json.loads(new)
 
     def update_cpu_temp(self, cpu_dict, sensors):
         # Single time - Find CPU Main Sensors Name
@@ -997,7 +1001,7 @@ class InfoCollector:
                         if 'Critical' not in cpu_dict and 'crit' in _sub_key:
                             cpu_dict["Critical"] = _sub_value
                             if 'Maximum' not in cpu_dict:
-                                cpu_dict["Maximum"] = _sub_value - 15
+                                cpu_dict["Maximum"] = _sub_value
 
                         if 'input' in _sub_key:
                             _sensor = [_key, _sub_key]
@@ -1012,8 +1016,8 @@ class InfoCollector:
             for _iter in range(len(self.cpu_sensors)):
                 _main_key = self.cpu_sensors[_iter][0]
                 _sub_key = self.cpu_sensors[_iter][1]
-
-                destination_dict[_main_key].append(source_dict[_main_key][_sub_key])
+                _value = int(source_dict[_main_key][_sub_key])
+                destination_dict[_main_key].append(_value)
 
     def update_gpu_temp(self, gpu_dict, sensors):
         # Single time - Find GPU Main Sensors Name
@@ -1044,24 +1048,14 @@ class InfoCollector:
             for _sensor in self.gpu_temp_key:
                 for _key, _value in sensors[_sensor].items():
                     if isinstance(_value, dict):
-                        for _sub_key, _sub_value in sensors[_sensor][_key].items():
-                            if 'Maximum' not in gpu_dict and 'max' in _sub_key:
-                                gpu_dict["Maximum"] = _sub_value
-                                continue
-                            if 'Critical' not in gpu_dict and 'crit' in _sub_key:
-                                gpu_dict["Critical"] = _sub_value
-                                if 'Maximum' not in gpu_dict:
-                                    gpu_dict["Maximum"] = _sub_value - 15
-                                continue
+                        gpu_dict["Critical"] = int(sensors[_sensor][_key].get(str(_key) + '_crit', 0)) - 15
+                        gpu_dict["Maximum"] = int(
+                            sensors[_sensor][_key].get(str(_key) + '_max', gpu_dict["Critical"] - 10))
+                        if gpu_dict["Critical"]:
+                            if _sensor not in gpu_dict["Dynamic"]: gpu_dict["Dynamic"][_sensor] = []
+                            self.gpu_sensors.append([_key, str(_key) + '_input'])
 
-                            if _sensor not in gpu_dict["Dynamic"]:
-                                gpu_dict["Dynamic"][_sensor] = []
-
-                            if 'temp' in _sub_key and 'input' in _sub_key:
-                                _values = [_key, _sub_key]
-                                self.gpu_sensors.append(_values)
-
-        # Update CPU Temperatures
+        # Update GPU Temperatures
         if self.gpu_temp_key:
             for _sensor in self.gpu_temp_key:
                 source_dict = sensors[_sensor]
@@ -1069,8 +1063,8 @@ class InfoCollector:
                 for _iter in range(len(self.gpu_sensors)):
                     _main_key = self.gpu_sensors[_iter][0]
                     _sub_key = self.gpu_sensors[_iter][1]
-                    destination_dict[_sensor].append(source_dict[_main_key].get(_sub_key, 0))
-                    # print(destination_dict)
+                    _value = int(source_dict[_main_key].get(_sub_key, 0))
+                    destination_dict[_sensor].append(_value)
 
     # < Other (Unsorted) Functions
     @staticmethod

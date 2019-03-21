@@ -1,5 +1,17 @@
 # Changelog
 
+## [v5.3.1] (2019-03-21)
+
+**Minor Changes - Cleanup:**
+
+- InfoCollector
+    - Added new Manufacturer & GPU replacement
+    - Cleanup of GPU Temp function, removing hopefully unnecessary loop(?)
+    - Changed maximum and critical temperature logic for GPU, for giving more room of heating, instead of almost immediately thermal shutdown.
+
+**Fixed bugs:**
+    - Eliminated (hopefully) bug, where if GPU turns off it temperature becomes N/A (in JSON whole line just disappears), and it makes temperature function to crash.
+
 ## [v5.3] (2019-03-20)
 
 **Major Changes:**
@@ -10,18 +22,18 @@
 **Minor Changes - Cleanup:**
 
 - InfoCollector
-   - Added new statement to condition for 'System Type', because some manufacturers declared type as 'Loptop' instead of 'Laptop'
-   - Cleanup few variables (InfoCollector)
-   - Updated version number
+    - Added new statement to condition for 'System Type', because some manufacturers declared type as 'Loptop' instead of 'Laptop'
+    - Cleanup few variables (InfoCollector)
+    - Updated version number
 
 - GUI
-   - If testing computer type is desktop, it will skip screen and camera entry box test (Validation if they are not empty)
+    - If testing computer type is desktop, it will skip screen and camera entry box test (Validation if they are not empty)
 
 - NBTest
-   - Removed extra new line from keyboard test, to allow software take smaller window size than previous.
+    - Removed extra new line from keyboard test, to allow software take smaller window size than previous.
 
 - NBStress
-   - Created new variable holding temperature CPU & GPU dict, and giving it, instead of repeating long line every time i need to use it. In theory should also improve performance a bit. 
+    - Created new variable holding temperature CPU & GPU dict, and giving it, instead of repeating long line every time i need to use it. In theory should also improve performance a bit.
 
 **Closed issues & Fixed bugs:**
 
