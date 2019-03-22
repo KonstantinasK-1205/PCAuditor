@@ -437,32 +437,34 @@ class NBSummary:
 
     def create_battery_info_extended(self, box):
         self.togBooleans['BAT']['Box'] = box
-        for iter_ in range(0, self.infocollector.battery_Dict["Collected"]["No"]):
+        for iter_ in range(0, len(self.infocollector.battery_Dict["Collected"]["Names"])):
             if iter_ > 0:
                 self.gui_base.create_label('', box)
 
-            keyword = str(iter_) + " Battery"
-            if keyword not in self.infocollector.battery_Dict["GUI"]:
-                self.infocollector.battery_Dict["GUI"][keyword] = {}
+            gui_keyword = str(iter_) + " Battery"
+            ic_keyword = self.infocollector.battery_Dict["Collected"]["Names"][iter_]
+            if gui_keyword not in self.infocollector.battery_Dict["GUI"]:
+                self.infocollector.battery_Dict["GUI"][gui_keyword] = {}
 
-            self.infocollector.battery_Dict["GUI"][keyword]["SN"] = self.gui_base.create_entry(
-                self.infocollector.battery_Dict["Collected"][keyword]["Serial"])
-            self.infocollector.battery_Dict["GUI"][keyword]["Model"] = self.gui_base.create_entry(
-                self.infocollector.battery_Dict["Collected"][keyword]["Model"])
-            self.infocollector.battery_Dict["GUI"][keyword]["Estimated"] = self.gui_base.create_entry(
-                self.infocollector.battery_Dict["Collected"][keyword]["Estimated"])
+            self.infocollector.battery_Dict["GUI"][gui_keyword]["SN"] = self.gui_base.create_entry(
+                self.infocollector.battery_Dict["Collected"][ic_keyword]["Serial"])
+            self.infocollector.battery_Dict["GUI"][gui_keyword]["Model"] = self.gui_base.create_entry(
+                self.infocollector.battery_Dict["Collected"][ic_keyword]["Model"])
+            self.infocollector.battery_Dict["GUI"][gui_keyword]["Estimated"] = self.gui_base.create_entry(
+                self.infocollector.battery_Dict["Collected"][ic_keyword]["Estimated"])
 
-            max_energy = self.infocollector.battery_Dict["Collected"][keyword]["Maximum Wh"]
-            max_factory = self.infocollector.battery_Dict["Collected"][keyword]["Factory Wh"]
-            wearlevel = self.infocollector.battery_Dict["Collected"][keyword]["Wear Level"]
+            max_energy = self.infocollector.battery_Dict["Collected"][ic_keyword]["Maximum Wh"]
+            max_factory = self.infocollector.battery_Dict["Collected"][ic_keyword]["Factory Wh"]
+            wearlevel = self.infocollector.battery_Dict["Collected"][ic_keyword]["Wear Level"]
             tooltip = "Current / Factory\n" + str(max_energy) + " / " + str(max_factory) + "\n\nWear level: " + str(
                 wearlevel)
 
-            self.gui_base.create_label_entry_box("Serial", self.infocollector.battery_Dict["GUI"][keyword]["SN"], box)
-            self.gui_base.create_label_entry_box("Model", self.infocollector.battery_Dict["GUI"][keyword]["Model"],
+            self.gui_base.create_label_entry_box("Serial", self.infocollector.battery_Dict["GUI"][gui_keyword]["SN"],
+                                                 box)
+            self.gui_base.create_label_entry_box("Model", self.infocollector.battery_Dict["GUI"][gui_keyword]["Model"],
                                                  box)
             self.gui_base.create_label_entry_box("Estimated Time",
-                                                 self.infocollector.battery_Dict["GUI"][keyword]["Estimated"], box,
+                                                 self.infocollector.battery_Dict["GUI"][gui_keyword]["Estimated"], box,
                                                  tooltip)
         box.show_all()
 

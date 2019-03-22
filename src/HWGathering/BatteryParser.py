@@ -8,7 +8,7 @@ class BatteryParser:
 
         self.path = _path
         self.batteries = dict()
-        self.batteries["No"] = 0
+        self.batteries["Names"] = []
 
     def get_battery_dict(self):
         return self.batteries
@@ -16,15 +16,14 @@ class BatteryParser:
     def get_batteries(self):
         dirs = os.listdir(self.path)
         for _dir in dirs:
-            if 'BAT' in _dir:
-                self.batteries["No"] += 1
+            if 'BAT' in _dir or 'CMB' in _dir:
+                self.batteries["Names"].append(_dir)
 
     # Check this code segment, for unknown reasons, it took pretty long time to execute
     def update_battery(self):
-        for _battery in range(0, self.batteries["No"]):
-            _keyword = str(_battery) + " Battery"
+        for _battery in self.batteries["Names"]:
             _dict = {}
-            _dict["Name"] = "BAT" + str(_battery)
+            _dict["Name"] = _battery
             _dict["Serial"] = self.get_serial(self.path, _battery)
             _dict["Model"] = self.get_model(self.path, _battery)
             _dict["Status"] = self.get_status(self.path, _battery)
@@ -43,7 +42,7 @@ class BatteryParser:
                       2)) + " %"
             _dict["Estimated"] = self.get_estimated_time(float(_dict["Wear Level"].split(' ')[0]),
                                                          _dict["Maximum Wh"].split(' ')[0])
-            self.batteries[_keyword] = _dict
+            self.batteries[_battery] = _dict
 
     def init_battery_uevent(self, _dict, _path):
         for _battery in range(0, _dict["Amount"]):
@@ -132,7 +131,7 @@ class BatteryParser:
 
     @staticmethod
     def read_file(_path, _battery, _file):
-        _file_location = _path + 'BAT' + str(_battery) + '/' + _file
+        _file_location = _path + _battery + '/' + _file
         if os.path.exists(_file_location):
             with open(_file_location, 'r') as tmp:
                 return tmp.read().rstrip()
