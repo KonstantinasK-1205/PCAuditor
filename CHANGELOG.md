@@ -10,7 +10,8 @@
     - Changed maximum and critical temperature logic for GPU, for giving more room of heating, instead of almost immediately thermal shutdown.
 
 **Fixed bugs:**
-    - Eliminated (hopefully) bug, where if GPU turns off it temperature becomes N/A (in JSON whole line just disappears), and it makes temperature function to crash.
+
+- Eliminated (hopefully) bug, where if GPU turns off it temperature becomes N/A (in JSON whole line just disappears), and it makes temperature function to crash.
 
 ## [v5.3] (2019-03-20)
 
