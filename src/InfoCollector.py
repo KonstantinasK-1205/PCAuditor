@@ -969,11 +969,11 @@ class InfoCollector:
                 if isinstance(_value, dict):
                     for _sub_key, _sub_value in sensors[self.cpu_temp_key][_key].items():
                         if 'Maximum' not in cpu_dict and 'max' in _sub_key:
-                            cpu_dict["Maximum"] = _sub_value
+                            cpu_dict["Maximum"] = _sub_value - 10
                         if 'Critical' not in cpu_dict and 'crit' in _sub_key:
-                            cpu_dict["Critical"] = _sub_value
+                            cpu_dict["Critical"] = _sub_value - 10
                             if 'Maximum' not in cpu_dict:
-                                cpu_dict["Maximum"] = _sub_value
+                                cpu_dict["Maximum"] = _sub_value - 20
 
                         if 'input' in _sub_key:
                             _sensor = [_key, _sub_key]
@@ -1019,7 +1019,7 @@ class InfoCollector:
             self.gpu_sensors = []
             for _sensor in self.gpu_temp_key:
                 for _key, _value in sensors[_sensor].items():
-                    if isinstance(_value, dict):
+                    if isinstance(_value, dict) and 'temp' in _key:
                         gpu_dict["Critical"] = int(sensors[_sensor][_key].get(str(_key) + '_crit', 0)) - 15
                         gpu_dict["Maximum"] = int(
                             sensors[_sensor][_key].get(str(_key) + '_max', gpu_dict["Critical"] - 10))

@@ -7,8 +7,7 @@ class BatteryParser:
         self.lastFunctionTime = ''
 
         self.path = _path
-        self.batteries = dict()
-        self.batteries["Names"] = []
+        self.batteries = {"Names": []}
 
     def get_battery_dict(self):
         return self.batteries
@@ -21,27 +20,26 @@ class BatteryParser:
 
     # Check this code segment, for unknown reasons, it took pretty long time to execute
     def update_battery(self):
+        _path = self.path
         for _battery in self.batteries["Names"]:
-            _dict = {}
-            _dict["Name"] = _battery
-            _dict["Serial"] = self.get_serial(self.path, _battery)
-            _dict["Model"] = self.get_model(self.path, _battery)
-            _dict["Status"] = self.get_status(self.path, _battery)
-            _dict["Manufacturer"] = self.get_manufacturer(self.path, _battery)
-            _dict["Min Voltage"] = round(float(self.get_minimal_voltage(self.path, _battery)) / 1000 / 1000 / 1000, 4)
-            _dict["Current Use"] = str(
-                round((float(self.get_current_use(self.path, _battery)) / 1000) * _dict["Min Voltage"], 2)) + " Wh"
-            _dict["Current Wh"] = str(
-                round((float(self.get_current_cap(self.path, _battery)) / 1000) * _dict["Min Voltage"], 2)) + " Wh"
-            _dict["Maximum Wh"] = str(
-                round((float(self.get_maximum_cap(self.path, _battery)) / 1000) * _dict["Min Voltage"], 2)) + " Wh"
-            _dict["Factory Wh"] = str(
-                round((float(self.get_factory_cap(self.path, _battery)) / 1000) * _dict["Min Voltage"], 2)) + " Wh"
-            _dict["Wear Level"] = str(
-                round(float(self.get_wearlevel(_dict["Factory Wh"].split(' ')[0], _dict["Maximum Wh"].split(' ')[0])),
-                      2)) + " %"
-            _dict["Estimated"] = self.get_estimated_time(float(_dict["Wear Level"].split(' ')[0]),
-                                                         _dict["Maximum Wh"].split(' ')[0])
+            _dict = {"Name": _battery,
+                     "Serial": self.get_serial(_path, _battery),
+                     "Model": self.get_model(_path, _battery),
+                     "Status": self.get_status(_path, _battery),
+                     "Manufacturer": self.get_manufacturer(_path, _battery),
+                     "Min Voltage": self.get_minimal_voltage(_path, _battery)}
+            _dict["Current Use"] = self.get_current_use(_path, _battery, _dict["Min Voltage"])
+            _dict["Current Wh"] = self.get_current_cap(_path, _battery, _dict["Min Voltage"])
+            _dict["Maximum Wh"] = self.get_maximum_cap(_path, _battery, _dict["Min Voltage"])
+            _dict["Factory Wh"] = self.get_factory_cap(_path, _battery, _dict["Min Voltage"])
+            _dict["Wear Level"] = self.get_wearlevel(_dict["Factory Wh"], _dict["Maximum Wh"])
+            _dict["Estimated"] = self.get_estimated_time(_dict["Wear Level"], _dict["Maximum Wh"])
+
+            _dict["Current Use"] = str(_dict["Current Use"]) + " Wh"
+            _dict["Current Wh"] = str(_dict["Current Wh"]) + " Wh"
+            _dict["Maximum Wh"] = str(_dict["Maximum Wh"]) + " Wh"
+            _dict["Factory Wh"] = str(_dict["Factory Wh"]) + " Wh"
+            _dict["Wear Level"] = str(_dict["Wear Level"]) + " %"
             self.batteries[_battery] = _dict
 
     def init_battery_uevent(self, _dict, _path):
@@ -53,15 +51,15 @@ class BatteryParser:
                 elif '_STATUS' in line:
                     _dict["Status"] = self.get_status(_path, _battery)
                 elif '_VOLTAGE_MIN_DESIGN' in line:
-                    _dict["Min Voltage"] = round(float(10800000) / 1000 / 1000, 2)
+                    _dict["Min Voltage"] = round(float(line.split('=')[1]) / 1000 / 1000, 2)
                 elif '_CURRENT_NOW' in line:
-                    _dict["Current Use"] = round(3115000 * (_dict["Min Voltage"] / 1000 / 1000), 2)
+                    _dict["Current Use"] = round(line.split('=')[1] * (_dict["Min Voltage"] / 1000 / 1000), 2)
                 elif '_CHARGE_FULL_DESIGN' in line:
-                    _dict["Factory Cap"] = round(3665000 * (_dict["Min Voltage"] / 1000 / 1000), 2)
+                    _dict["Factory Cap"] = round(line.split('=')[1] * (_dict["Min Voltage"] / 1000 / 1000), 2)
                 elif '_CHARGE_FULL' in line:
-                    _dict["Maximum Cap"] = round(3665000 * (_dict["Min Voltage"] / 1000 / 1000), 2)
+                    _dict["Maximum Cap"] = round(line.split('=')[1] * (_dict["Min Voltage"] / 1000 / 1000), 2)
                 elif '_CHARGE_NOW' in line:
-                    _dict["Current Cap"] = round(623000 * (_dict["Min Voltage"] / 1000 / 1000), 2)
+                    _dict["Current Cap"] = round(line.split('=')[1] * (_dict["Min Voltage"] / 1000 / 1000), 2)
                 elif '_MODEL_NAME' in line:
                     _dict["Model"] = line.split('=')[1]
                 elif '_MANUFACTURER' in line:
@@ -89,28 +87,56 @@ class BatteryParser:
 
     @classmethod
     def get_minimal_voltage(cls, _path, _battery):
-        return cls.read_file(_path, _battery, 'voltage_min_design')
+        _voltage = cls.read_file(_path, _battery, 'voltage_min_design')
+        if _voltage and not _voltage == 0:
+            _voltage = round(float(_voltage) / pow(1000, 2), 2)
+        else:
+            _voltage = 0
+        return _voltage
 
     @classmethod
-    def get_current_use(cls, _path, _battery):
-        return cls.read_file(_path, _battery, 'current_now')
+    def get_current_use(cls, _path, _battery, _voltage):
+        _current = cls.read_file(_path, _battery, 'current_now')
+        if _current and not _current == 0:
+            _current = round(float(_current) / pow(1000, 2) * _voltage, 2)
+        else:
+            _current = 0
+        return _current
 
     @classmethod
-    def get_current_cap(cls, _path, _battery):
-        return cls.read_file(_path, _battery, 'charge_now')
+    def get_current_cap(cls, _path, _battery, _voltage):
+        _current = cls.read_file(_path, _battery, 'charge_now')
+        if _current and not _current == 0:
+            _current = round(float(_current) / pow(1000, 2) * _voltage, 2)
+        else:
+            _current = 0
+        return _current
 
     @classmethod
-    def get_maximum_cap(cls, _path, _battery):
-        return cls.read_file(_path, _battery, 'charge_full')
+    def get_maximum_cap(cls, _path, _battery, _voltage):
+        _maximum = cls.read_file(_path, _battery, 'charge_full')
+        if _maximum and not _maximum == 0:
+            _maximum = round(float(_maximum) / pow(1000, 2) * _voltage, 2)
+        else:
+            _maximum = 0
+        return _maximum
 
     @classmethod
-    def get_factory_cap(cls, _path, _battery):
-        return cls.read_file(_path, _battery, 'charge_full_design')
+    def get_factory_cap(cls, _path, _battery, _voltage):
+        _factory = cls.read_file(_path, _battery, 'charge_full_design')
+        if _factory and not _factory == 0:
+            _factory = round(float(_factory) / pow(1000, 2) * _voltage, 2)
+        else:
+            _factory = 0
+        return _factory
 
     @staticmethod
     def get_wearlevel(_factory_capacity, _maximum_capacity):
-        capacity = (float(_maximum_capacity) / float(_factory_capacity)) * 100
-        wearlevel = format((100.00 - capacity), '.2f')
+        if _factory_capacity == 0: _factory_capacity = 1
+        if _maximum_capacity == 0: _maximum_capacity = 1
+
+        capacity = _maximum_capacity / _factory_capacity * 100
+        wearlevel = round((100.00 - capacity), 2)
         return wearlevel
 
     @staticmethod
@@ -134,7 +160,11 @@ class BatteryParser:
         _file_location = _path + _battery + '/' + _file
         if os.path.exists(_file_location):
             with open(_file_location, 'r') as tmp:
-                return tmp.read().rstrip()
+                try:
+                    _temp = tmp.read().rstrip()
+                except OSError:
+                    _temp = ''
+                return _temp
 
 
 win = BatteryParser()

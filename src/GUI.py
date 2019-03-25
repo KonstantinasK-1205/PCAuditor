@@ -548,28 +548,31 @@ class MyWindow(Gtk.Window):
             self.post_dict["Optical Device"][keyword]["Serial"] = serial
             self.post_dict["Optical Device"][keyword]["Model"] = model
         # < Batteries Information
-        for iter_ in range(1, infocollector.battery_Dict["Collected"]["No"]):
-            if iter_ == 1:
+        for iter_ in range(0, len(infocollector.battery_Dict["Collected"]["Names"])):
+            if iter_ == 0:
                 self.post_dict["Batteries"] = {}
             keyword = str(iter_) + " Battery"
+            ic_keyword = infocollector.battery_Dict["Collected"]["Names"][iter_]
+            post_keyword = str(iter_ + 1) + " Battery"
+
             serial = infocollector.battery_Dict["GUI"][keyword]["SN"].get_text()
             model = infocollector.battery_Dict["GUI"][keyword]["Model"].get_text()
             estimated = infocollector.battery_Dict["GUI"][keyword]["Estimated"].get_text()
-            current_wh = infocollector.battery_Dict["Collected"][keyword]["Current Wh"]
-            maximum_wh = infocollector.battery_Dict["Collected"][keyword]["Maximum Wh"]
-            factory_wh = infocollector.battery_Dict["Collected"][keyword]["Factory Wh"]
-            wear_level = infocollector.battery_Dict["Collected"][keyword]["Wear Level"]
+            current_wh = infocollector.battery_Dict["Collected"][ic_keyword]["Current Wh"]
+            maximum_wh = infocollector.battery_Dict["Collected"][ic_keyword]["Maximum Wh"]
+            factory_wh = infocollector.battery_Dict["Collected"][ic_keyword]["Factory Wh"]
+            wear_level = infocollector.battery_Dict["Collected"][ic_keyword]["Wear Level"]
 
-            if keyword not in self.post_dict["Batteries"]:
-                self.post_dict["Batteries"][keyword] = {}
+            if post_keyword not in self.post_dict["Batteries"]:
+                self.post_dict["Batteries"][post_keyword] = {}
 
-            self.post_dict["Batteries"][keyword]["Serial"] = serial
-            self.post_dict["Batteries"][keyword]["Model"] = model
-            self.post_dict["Batteries"][keyword]["Estimated"] = estimated
-            self.post_dict["Batteries"][keyword]["Current Wh"] = current_wh
-            self.post_dict["Batteries"][keyword]["Maximum Wh"] = maximum_wh
-            self.post_dict["Batteries"][keyword]["Factory Wh"] = factory_wh
-            self.post_dict["Batteries"][keyword]["Wear Level"] = wear_level
+            self.post_dict["Batteries"][post_keyword]["Serial"] = serial
+            self.post_dict["Batteries"][post_keyword]["Model"] = model
+            self.post_dict["Batteries"][post_keyword]["Estimated"] = estimated
+            self.post_dict["Batteries"][post_keyword]["Current Wh"] = current_wh
+            self.post_dict["Batteries"][post_keyword]["Maximum Wh"] = maximum_wh
+            self.post_dict["Batteries"][post_keyword]["Factory Wh"] = factory_wh
+            self.post_dict["Batteries"][post_keyword]["Wear Level"] = wear_level
         # < Observation Information
         self.post_dict["Observations"]["Add. comment"] = guiTemplate.get_multiline_text(nbObservations.obsNotes)
         nbObservations.sort_obs_codes()
