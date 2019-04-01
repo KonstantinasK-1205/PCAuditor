@@ -5,74 +5,84 @@ from gi.repository import Gtk, Gdk
 
 
 class NBObservations:
-    def __init__(self, gui_base, infocollector):
-        self.gui_base = gui_base
-        self.infocollector = infocollector
-        self.selectedObs = dict()
+    def __init__(self, _gui_template, _infocollector):
+        self.gui_base = _gui_template
+        self.infocollector = _infocollector
 
-        self.page_box = None
-        self.obs_CategoryNB = None
-        self.obs_CodeArea = None
-        self.obs_CodeAreaInner = None
+        self.page = None
+        self.category_nb = None
+        self.page_wrapper = None
+        self.selected_codes_area = None
 
-        self.obs_ListStore = Gtk.ListStore(str)
+        self.list_store_code = Gtk.ListStore(str)
 
-        self.obsCodes = []  # Stores string version of observations
-        self.obsButtonList = []  # Stores list of GTK:Button(-s)
-        self.obsNotes = None
+        self.code_button_list = dict()
+        self.selected_obs = []
+        self.add_note = None
 
-        self.infocollector.debug_info("Information", "Observations - Variables Initilizated")
+        self.infocollector.debug_info("Information", "Observations - Variables Initialized")
 
     def create_page(self):
         self.infocollector.debug_info("Information", "Creating Observations Page")
-        self.page_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.obs_CategoryNB = Gtk.Notebook(tab_pos=Gtk.PositionType.LEFT)
 
-        self.obs_CodeArea = Gtk.Box()
-        self.obs_CodeAreaInner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        if self.infocollector.observations["All"]:
-            self.create_obs_notes(self.page_box)
-            self.create_selected_code_area(self.obs_CodeAreaInner)
-            # < Observations      | Adding obs to Obs List
-            for MainKey, MainValue in self.infocollector.observations["All"].items():
-                subcategory_nb = Gtk.Notebook()
-                for SubKey, SubValue in MainValue.items():
-                    if SubValue:
-                        button_box_sb = self.gui_base.create_scrolling_box('vertical', 'always')
-                        buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-                        for codeName, code in SubValue.items():
+        self.page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.category_nb = Gtk.Notebook(tab_pos=Gtk.PositionType.LEFT)
+        server_observations = self.infocollector.observations["Server"]
+
+        self.page_wrapper = Gtk.Box()
+        self.selected_codes_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+        if server_observations:
+            self.create_add_note(self.page)
+            self.create_selected_code_area(self.selected_codes_area)
+
+            # Observations | Adding observation codes as buttons
+            # First items are main categories, etc: Top lid, Bottom lid, Palmrest
+            for _category_key, _category_val in server_observations.items():
+                type_nb = Gtk.Notebook()
+                # Type items are sub categories, etc: Appearance, Function, Missing
+                for _type_key, _type_val in _category_val.items():
+                    if _type_val:
+                        sc_box = self.gui_base.create_scrolling_box('vertical', 'always')
+                        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+                        for _code_name, _code_val in _type_val.items():
                             # For every Code create his own button
-                            self.gui_base.create_obs_button(codeName, self.add_selected_to_list, buttons_box,
-                                                            self.obsButtonList)
-                        button_box_sb.add(buttons_box)
-                        subcategory_nb.append_page(button_box_sb, Gtk.Label.new_with_mnemonic(SubKey))
-                self.obs_CategoryNB.append_page(subcategory_nb, Gtk.Label.new_with_mnemonic(MainKey))
+                            button = self.gui_base.create_obs_button(_code_name, self.add_selected_to_list,
+                                                                     _category_key, _type_key, _code_val)
+                            self.code_button_list.update({_code_val: button})
+                            box.pack_start(button, False, False, 0)
 
-            self.load_saved_obs(self.infocollector.observations["Recorded"], self.infocollector.observations["All"])
+                        sc_box.add(box)
+                        type_nb.append_page(sc_box, Gtk.Label.new_with_mnemonic(_type_key))
+                self.category_nb.append_page(type_nb, Gtk.Label.new_with_mnemonic(_category_key))
+
             self.gui_base.create_button("Remove All", self.remove_all_selected_codes,
-                                        self.obs_CodeAreaInner, 'Remove All')
+                                        self.selected_codes_area, 'Remove All')
+
+            if self.infocollector.observations["Recorded"]:
+                self.load_saved_obs(self.infocollector.observations["Recorded"], server_observations)
 
             # < Observations      | Pushing to main Boxes
-            self.obs_CodeArea.pack_start(self.obs_CategoryNB, True, True, 0)
-            self.obs_CodeArea.pack_start(self.obs_CodeAreaInner, False, False, 0)
-            self.page_box.pack_start(self.obs_CodeArea, True, True, 0)
+            self.page_wrapper.pack_start(self.category_nb, True, True, 0)
+            self.page_wrapper.pack_start(self.selected_codes_area, False, False, 0)
+            self.page.pack_start(self.page_wrapper, True, True, 0)
 
         self.infocollector.debug_info("Information", "Finished creating - Observations Page")
 
-    def create_obs_notes(self, box):
+    def create_add_note(self, box):
         note_box = Gtk.Box()
         label = Gtk.Label("Other")
-        self.obsNotes = self.gui_base.create_multiline_entry()
+        self.add_note = self.gui_base.create_multiline_entry()
         if self.infocollector.obsAddNotes:
-            self.gui_base.set_multiline_text(self.obsNotes, self.infocollector.obsAddNotes)
-        note_box.pack_end(self.obsNotes, True, True, 0)
+            self.gui_base.set_multiline_text(self.add_note, self.infocollector.obsAddNotes)
+        note_box.pack_end(self.add_note, True, True, 0)
         note_box.pack_end(label, False, False, 10)
         box.pack_end(note_box, True, True, 0)
 
     def create_selected_code_area(self, box):
         scroll_window = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
                                            vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
-        treeview = Gtk.TreeView(model=self.obs_ListStore)
+        treeview = Gtk.TreeView(model=self.list_store_code)
         treeview.connect("row_activated", self.get_activated_row)
 
         obs_code_render = Gtk.CellRendererText()
@@ -82,88 +92,66 @@ class NBObservations:
         box.pack_start(scroll_window, True, True, 0)
 
     # Observation Functions - [ add, load, sort, clear ]
-    def add_selected_to_list(self, button='', _field=''):
-        if not isinstance(button, Gtk.Button):
-            for _button in self.obsButtonList:
-                if button == _button.get_label():
-                    button = _button
-        obs_code = self.value_to_key(self.infocollector.observations["All"], button.get_label())
-        if obs_code not in self.obsCodes:
-            self.obsCodes.append(obs_code)
-            self.obs_ListStore.append([obs_code])
+    def add_selected_to_list(self, _button, _category, _type, _code_val):
+        # This block gets executed when there is any saved observations
+        if isinstance(_button, str):
+            _button = self.code_button_list.get(_code_val)
+
+        if _code_val not in self.selected_obs:
+            self.selected_obs.append(_code_val)
+            self.list_store_code.append([_code_val])
             color = Gdk.color_parse('#ffae5d')
-            button.modify_bg(Gtk.StateType.NORMAL, color)
+            _button.modify_bg(Gtk.StateType.NORMAL, color)
 
-    def load_saved_obs(self, obs_variable, observations):
-        if obs_variable:
-            for key, value in obs_variable.items():
-                for _subKey, _subValue in obs_variable[key].items():
-                    for code in _subValue:
-                        self.add_selected_to_list(self.key_to_value(observations, code))
+    def load_saved_obs(self, _recorded_obs, _observations):
+        for _category_key, _category_val in _recorded_obs.items():
+            for _type_key, _type_val in _category_val.items():
+                for _code_key, _code_val in _type_val.items():
+                    self.add_selected_to_list(_code_key, _category_key, _type_key, _code_val)
 
-    def sort_obs_codes(self):
-        self.clear_selected_codes()
-        for code in sorted(self.obsCodes):
-            _MainCategory = ''
-            _SubCategory = ''
-            for _mainKey, _mainValue in self.infocollector.observations["All"].items():
-                for _subKey, _subValue in self.infocollector.observations["All"][_mainKey].items():
-                    for _2subKey, _2subValue in self.infocollector.observations["All"][_mainKey][_subKey].items():
-                        if code in _2subValue:
-                            _MainCategory = _mainKey
-                            _SubCategory = _subKey
+    def prepare_obs(self):
+        note = self.gui_base.get_multiline_text(self.add_note)
+        self.infocollector.observations["Selected"].clear()
+        self.infocollector.observations["Selected"]["Add. comment"] = note
 
-            if _MainCategory not in self.selectedObs:
-                self.selectedObs[_MainCategory] = {}
-            if _SubCategory not in self.selectedObs[_MainCategory]:
-                self.selectedObs[_MainCategory][_SubCategory] = []
-            if code not in self.selectedObs[_MainCategory][_SubCategory]:
-                self.selectedObs[_MainCategory][_SubCategory].append(code)
+        for code in sorted(self.selected_obs):
+            server_obs = self.infocollector.observations["Server"]
+            selected_obs = self.infocollector.observations["Selected"]
+            main_category = ''
+            sub_category = ''
+            # Now based on SNDA1, BTMM2 found it category and type
+            for _main_key, _main_value in server_obs.items():
+                for _sub_key, _sub_value in server_obs[_main_key].items():
+                    for _sub_sub_key, _sub_sub_Value in server_obs[_main_key][_sub_key].items():
+                        if code in _sub_sub_Value:
+                            main_category = _main_key
+                            sub_category = _sub_key
 
-    def clear_selected_codes(self):
-        note = self.gui_base.get_multiline_text(self.obsNotes)
-        if "Add. comment" in self.selectedObs:
-            note = self.selectedObs["Add. comment"]
-        self.selectedObs.clear()
-        self.selectedObs["Add. comment"] = note
+            if main_category and main_category not in selected_obs:
+                selected_obs[main_category] = {}
+
+            if sub_category and sub_category not in selected_obs[main_category]:
+                selected_obs[main_category][sub_category] = []
+
+            if code and code not in selected_obs[main_category][sub_category]:
+                selected_obs[main_category][sub_category].append(code)
 
     # Event - On Click ( Selected OBS )
-    def get_activated_row(self, _treeview, path, _column):
-        tree_iter = self.obs_ListStore.get_iter(path)
-        key_code = self.key_to_value(self.infocollector.observations["All"], self.obs_ListStore[tree_iter][0])
-        for _button in self.obsButtonList:
-            if key_code == _button.get_label():
-                _button.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('#ffffff'))
-                break
-        self.obsCodes.remove(self.obs_ListStore[tree_iter][0])
-        self.obs_ListStore.remove(tree_iter)
+    def get_activated_row(self, _treeview, _path, _column):
+        tree_iter = self.list_store_code.get_iter(_path)
+        code_val = self.list_store_code[tree_iter][0]
+
+        _button = self.code_button_list.get(code_val)
+        _button.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('#ffffff'))
+
+        self.selected_obs.remove(code_val)
+        self.list_store_code.remove(tree_iter)
 
     # Button Functions
     def remove_all_selected_codes(self, _button, _field):
-        if self.obsCodes:
-            self.obsCodes.clear()
-            self.obs_ListStore.clear()
-            self.clear_selected_codes()
-            for button in self.obsButtonList:
+        if self.selected_obs:
+            self.list_store_code.clear()
+            self.selected_obs.clear()
+            for button in self.code_button_list.values():
                 color = Gdk.color_parse('#ffffff')
                 button.modify_bg(Gtk.StateType.NORMAL, color)
-
-    # Dict Related Functions
-    def value_to_key(self, target_obj, key):
-        if key in target_obj:
-            return target_obj[key]
-        for _key, _value in target_obj.items():
-            if isinstance(_value, dict):
-                _value = self.value_to_key(_value, key)
-                if _value:
-                    return _value
-
-    def key_to_value(self, target_obj, searched_value):
-        for _key, _value in target_obj.items():
-            if isinstance(_value, dict):
-                _value = self.key_to_value(_value, searched_value)
-                if _value:
-                    return _value
-            if isinstance(_value, str):
-                if _value == searched_value:
-                    return _key

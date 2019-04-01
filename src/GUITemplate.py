@@ -4,21 +4,22 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GdkPixbuf
 
 
+# noinspection PyCallByClass,PyArgumentList
 class GUITemplate:
-    def __init__(self, infocollector):
-        self.infocollector = infocollector
+    def __init__(self, _infocollector):
+        self.infocollector = _infocollector
         self.main_window = ''
         self.keyboard_box = ''
         self.mouse_box = ''
 
-    def init_variables(self, keyboard_box, mouse_box, window):
-        self.main_window = window
-        self.keyboard_box = keyboard_box
-        self.mouse_box = mouse_box
+    def init_variables(self, _keyboard_box, _mouse_box, _window):
+        self.main_window = _window
+        self.keyboard_box = _keyboard_box
+        self.mouse_box = _mouse_box
 
     # < - Simple GTK Widgets - Label & Entry & Separator
     @staticmethod
-    def create_label(_label, _box=''):
+    def create_label(_label, _box=None):
         _label = Gtk.Label.new(_label)
         if isinstance(_box, Gtk.Box):
             _box.pack_start(_label, False, False, 0)
@@ -26,7 +27,7 @@ class GUITemplate:
             return _label
 
     @staticmethod
-    def create_entry(_text='', _is_enabled=True, _box=''):
+    def create_entry(_text, _is_enabled=True, _box=None):
         entry = Gtk.Entry(xalign=0.5, width_chars=20, sensitive=_is_enabled, text=_text)
         if isinstance(_box, Gtk.Box):
             _box.pack_start(entry, False, False, 0)
@@ -44,16 +45,18 @@ class GUITemplate:
 
     # < - Simple GTK Widgets - Buttons
     @staticmethod
-    def create_button(_text, _function='', _box='', _field='', _tooltip='', _stretch=False, _is_enabled=True):
+    def create_button(_text, _function=None, _box=None, _field=None, _tooltip=None, _stretch=False, _is_enabled=True):
         button = Gtk.Button(label=_text, sensitive=_is_enabled)
+        if _function:
+            if not _field:
+                button.connect('clicked', _function)
+            else:
+                button.connect('clicked', _function, _field)
         if _tooltip:
             button.set_tooltip_text(_tooltip)
-        if not _function == '':
-            button.connect('clicked', _function, _field)
 
         if isinstance(_box, Gtk.Box):
             _box.pack_start(button, _stretch, _stretch, 0)
-            return
         else:
             return button
 
@@ -65,22 +68,21 @@ class GUITemplate:
         return button
 
     @staticmethod
-    def create_obs_button(_text, _function, _box, _obs_button_list):
+    def create_obs_button(_text, _function, _first_level, _second_level, _code_val):
         button = Gtk.Button(label=_text)
-        button.connect('clicked', _function)
-        _obs_button_list.append(button)
-        _box.pack_start(button, False, False, 0)
+        button.connect('clicked', _function, _first_level, _second_level, _code_val)
+        return button
 
     @staticmethod
     def create_spin_button(_init_value=1.0, _min_value=1.0, _max_value=1.0, _increment=1.0, _function=''):
-        adjustment = Gtk.Adjustment.new(_init_value, _min_value, _max_value, _increment, 10, 0)
-        spinbutton = Gtk.SpinButton.new(adjustment, _increment, 0)
+        adjustment = Gtk.Adjustment.new(_init_value, _min_value, _max_value, _increment, page_increment=10, page_size=0)
+        spin_button = Gtk.SpinButton.new(adjustment, _increment, digits=0)
         if _function:
-            spinbutton.connect('value-changed', _function)
-        return spinbutton
+            spin_button.connect('value-changed', _function)
+        return spin_button
 
     def add_image_to_button(self, _image, _button, _is_always_shown=True, _image_pos=Gtk.PositionType.TOP):
-        icon = Gtk.Image.new_from_file(self.infocollector.appResourcePath + "/" + _image)
+        icon = Gtk.Image.new_from_file(filename=self.infocollector.appResourcePath + "/" + _image)
         _button.set_image(icon)
         _button.set_always_show_image(_is_always_shown)
         _button.set_image_position(_image_pos)
@@ -106,35 +108,35 @@ class GUITemplate:
 
     # < - Complex GTK Widgets
     @staticmethod
-    def create_label_dropbox(label, possible_values, box='', specific_value='', value_boolean=False, is_enabled=True):
+    def create_label_dropbox(_label, _possible_values, _box=None,
+                             _specific_value=None, _value_boolean=False, _is_enabled=True):
         group_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0, homogeneous=True)
-        label = Gtk.Label.new(label)
-        combobox = Gtk.ComboBoxText(sensitive=is_enabled)
+        _label = Gtk.Label.new(_label)
+        combobox = Gtk.ComboBoxText(sensitive=_is_enabled)
 
-        for option in possible_values:
+        for option in _possible_values:
             combobox.append_text(option)
 
-        if specific_value in possible_values:
-            combobox.set_active(possible_values.index(specific_value))
+        if _specific_value in _possible_values:
+            combobox.set_active(_possible_values.index(_specific_value))
         else:
-            if value_boolean:
+            if _value_boolean:
                 combobox.set_active(0)
 
-        if isinstance(box, Gtk.Box):
-            group_box.pack_start(label, False, False, 0)
+        if isinstance(_box, Gtk.Box):
+            group_box.pack_start(_label, False, False, 0)
             group_box.pack_start(combobox, True, True, 0)
-            box.pack_start(group_box, False, False, 0)
-            return
+            _box.pack_start(group_box, False, False, 0)
         else:
-            return group_box, label, combobox
+            return group_box, _label, combobox
 
     @staticmethod
-    def create_label_button_box(main_box, category_string, category_button):
+    def create_label_button_box(_main_box, _category_string, _category_button):
         temp_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0, homogeneous=True)
-        category = Gtk.Label.new(category_string)
+        category = Gtk.Label.new(_category_string)
         temp_box.pack_start(category, False, False, 0)
-        temp_box.pack_start(category_button, False, False, 0)
-        main_box.pack_start(temp_box, False, False, 0)
+        temp_box.pack_start(_category_button, False, False, 0)
+        _main_box.pack_start(temp_box, False, False, 0)
 
     @staticmethod
     def create_multiline_entry():
@@ -143,28 +145,28 @@ class GUITemplate:
         scrolled_window.add(entry)
         return scrolled_window
 
-    def create_label_entry_box(self, label, entry, toggle_box, tooltip=''):
+    def create_label_entry_box(self, _label, _entry, _toggle_box, _tooltip=None):
         group_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0, homogeneous=True)
-        label = Gtk.Label.new(label)
+        _label = Gtk.Label.new(_label)
 
-        if entry.get_text() == "-":
-            entry = Gtk.Label("")
-        if tooltip:
-            group_box.set_tooltip_text(tooltip)
+        if _entry.get_text() == "-":
+            _entry = Gtk.Label("")
+        if _tooltip:
+            group_box.set_tooltip_text(_tooltip)
 
-        group_box.pack_start(label, False, False, 0)
-        group_box.pack_start(entry, False, False, 0)
-        toggle_box.pack_start(group_box, False, False, 0)
-        if not isinstance(entry, Gtk.Label):
-            if not label == "Last tester":
-                self.create_separator(toggle_box, 'horizontal', 1)
+        group_box.pack_start(_label, False, False, 0)
+        group_box.pack_start(_entry, False, False, 0)
+        _toggle_box.pack_start(group_box, False, False, 0)
+        if not isinstance(_entry, Gtk.Label):
+            if not _label == "Last tester":
+                self.create_separator(_toggle_box, 'horizontal', 1)
 
     # <- Set/Get/Change Widgets properties, values
     @staticmethod
-    def set_multiline_text(widget, string):
-        for child in widget.get_children():
+    def set_multiline_text(_widget, _string):
+        for child in _widget.get_children():
             end_iter = child.get_buffer().get_end_iter()
-            child.get_buffer().insert(end_iter, '\n' + string, -1)
+            child.get_buffer().insert(end_iter, '\n' + _string, -1)
 
             start_iter = child.get_buffer().get_start_iter()
             end_iter = child.get_buffer().get_end_iter()
@@ -172,31 +174,30 @@ class GUITemplate:
             child.get_buffer().set_text(buffer_text)
 
     @staticmethod
-    def get_multiline_text(widget):
+    def get_multiline_text(_widget):
         text = ''
-        for child in widget.get_children():
+        for child in _widget.get_children():
             start_iter = child.get_buffer().get_start_iter()
             end_iter = child.get_buffer().get_end_iter()
             text = child.get_buffer().get_text(start_iter, end_iter, True)
         return text
 
     @staticmethod
-    def change_progressbar_value(widget, progress=0):
-        widget.set_value(float(progress))
+    def change_progressbar_value(_widget, _progress=0):
+        _widget.set_value(float(_progress))
 
     @staticmethod
-    def change_label(widget, text):
-        if "Button" in str(type(widget)):
-            widget.set_label(text)
-        elif "Label" in str(type(widget)):
-            widget.set_text(text)
+    def change_label(_widget, _text):
+        if isinstance(_widget, Gtk.Button):
+            _widget.set_label(_text)
+        elif isinstance(_widget, Gtk.Label):
+            _widget.set_text(_text)
         return False
 
     # < Dialogs Function
     @staticmethod
     def throw_options_win(_parent_win, _title, _content):
-        dialog = Gtk.Dialog(parent=_parent_win)
-        dialog.set_title(_title)
+        dialog = Gtk.Dialog(parent=_parent_win, title=_title)
         dialog.add_button("Godex DT4x ( Office)", 0)
         dialog.add_button("Godex G500 ( eBay )", 1)
         dialog.add_button("Cancel", 2)
@@ -235,7 +236,7 @@ class GUITemplate:
     def throw_image_window(_picture, _infocollector, _events):
         dialog = Gtk.Dialog(title=_infocollector.pictures[_picture])
 
-        image_pix_buf = GdkPixbuf.Pixbuf.new_from_file(_infocollector.pictures[_picture])
+        image_pix_buf = GdkPixbuf.Pixbuf.new_from_file(filename=_infocollector.pictures[_picture])
         image = Gtk.Image.new_from_pixbuf(image_pix_buf)
         image_box = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
                                        vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
@@ -249,13 +250,12 @@ class GUITemplate:
         dialog.set_default_size(width, height)
 
         dialog.show_all()
-        dialog.connect('key-release-event', _events.file_chooser_key_event, _picture, dialog, _infocollector)
+        dialog.connect('key-release-event', _events.file_chooser_key_event, _picture, dialog)
         dialog.run()
         dialog.destroy()
 
     def throw_bugreport_win(self, _parent_win, _title):
-        dialog = Gtk.Dialog(parent=_parent_win, title=_title)
-        dialog.set_size_request(320, 480)
+        dialog = Gtk.Dialog(parent=_parent_win, title=_title, default_width=480, default_height=320)
         box = dialog.get_content_area()
 
         tester = Gtk.Entry()
@@ -269,15 +269,29 @@ class GUITemplate:
         dialog.add_button("Cancel", 0)
         dialog.add_button("Submit", 1)
 
+        is_info_valid = False
+        confirmed = False
+
         dialog.show_all()
-        response = dialog.run()
-        if response == 0:
-            confirmed = False
-            tester = ""
-            multiline = ""
-        else:
-            confirmed = True
-            tester = tester.get_text()
-            multiline = self.get_multiline_text(multiline)
+        while not is_info_valid:
+            response = dialog.run()
+            if response == 0:
+                is_info_valid = True
+                confirmed = False
+                tester = ""
+                multiline = ""
+            else:
+                if not isinstance(tester, Gtk.Entry) or not tester.get_text():
+                    self.throw_error_win(_parent_win, "Error", "Tester cannot be empty!")
+
+                if not isinstance(multiline, Gtk.ScrolledWindow) or not self.get_multiline_text(multiline):
+                    self.throw_error_win(_parent_win, "Error", "Problem description cannot be empty!")
+
+                if isinstance(tester, Gtk.Entry) and isinstance(multiline, Gtk.ScrolledWindow):
+                    if self.get_multiline_text(multiline) and tester.get_text():
+                        multiline = self.get_multiline_text(multiline)
+                        tester = tester.get_text()
+                        is_info_valid = True
+                        confirmed = True
         dialog.destroy()
         return confirmed, tester, multiline

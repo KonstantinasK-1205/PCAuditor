@@ -13,7 +13,7 @@ class Server:
 
         self.serverThreads = []
         self.serverIP = ""
-        self.infocollector.debug_info("Information", "Server Variables Initilizated")
+        self.infocollector.debug_info("Information", "Server Variables Initialized")
         if not ip_list:
             ip_list = ['http://192.168.0.1:8000/',
                        'http://192.168.8.254:8000/',
@@ -55,7 +55,7 @@ class Server:
                 aux_data = response.json()
                 self.serverIP = ip
                 self.infocollector.debug_info("Notice", "Connection was established with server at " + str(ip))
-                self.infocollector.observations["All"] = aux_data['Observations']
+                self.infocollector.observations["Server"] = aux_data['Observations']
                 self.infocollector.avail_Batches = sorted(aux_data['Received batches'])
                 self.get_data_from_server()
                 if self.isConnEstablish:
@@ -161,27 +161,28 @@ class Server:
 
     def get_recorded_observations(self, recorded_data):
         try:
-            short = ''
-            secondary_category = ''
-            for first_category in recorded_data["Observations"]:
+            recorded_obs = self.infocollector.observations["Recorded"]
+            for _category_key, _category_val in recorded_data["Observations"].items():
                 # If Category doesn't exist, create it
-                if first_category not in self.infocollector.observations["Recorded"]:
-                    self.infocollector.observations["Recorded"][first_category] = {}
+                if _category_key not in recorded_obs:
+                    recorded_obs[_category_key] = {}
 
-                for code in recorded_data["Observations"][first_category]:
-                    # Now we try to sort code based his category
-                    if code[3].lower() == "a":
-                        secondary_category = 'Appearance'
-                    elif code[3].lower() == "f":
-                        secondary_category = 'Function'
-                    elif code[3].lower() == "m":
-                        secondary_category = 'Missing'
+                for _code_key, _code_val in _category_val.items():
+                    # Now lets find in which type each code goes
+                    if _code_val[3].lower() == "a":
+                        code_type = 'Appearance'
+                    elif _code_val[3].lower() == "f":
+                        code_type = 'Function'
+                    elif _code_val[3].lower() == "m":
+                        code_type = 'Missing'
+                    else:
+                        continue
 
-                    # If SubCategory doesn't exist, create it
-                    if secondary_category not in self.infocollector.observations["Recorded"][first_category]:
-                        self.infocollector.observations["Recorded"][first_category][secondary_category] = []
-                        short = self.infocollector.observations["Recorded"][first_category][secondary_category].append
-                    short(code)
+                    # If SubCategory(type) doesn't exist, create it
+                    if code_type not in recorded_obs[_category_key]:
+                        recorded_obs[_category_key][code_type] = {}
+                    # And finally push code {key} and {val} to dict
+                    recorded_obs[_category_key][code_type].update({_code_key: _code_val})
         except Exception as e:
             self.infocollector.debug_info("Critical", "Recorded observation couldn't be loaded")
             self.infocollector.debug_info("Exception", e)
@@ -221,7 +222,6 @@ class Server:
         else:
             self.infocollector.debug_info("Error", "Error occurred! [ " + str(response.status_code) + " ] - " +
                                           str(response.reason) + "\n" + str(response.content.decode('utf-8')))
-            print(response.text)
             return False
 
     #       picture = self.infocollector.manage_Photos()

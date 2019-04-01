@@ -57,15 +57,11 @@ class NBTests:
         self.isMicrophoneTestActive = False
         self.isSpeakerTestActive = False
 
-        #        dbus_loop = GLib.MainLoop.get_context()
-        #        dbus_system = dbus.SystemBus(mainloop=dbus_loop)
-        #        dbus_system.add_signal_receiver(self.interface_changed, 'InterfacesAdded', 'org.freedesktop.DBus.ObjectManager')
-
         self.kbd_bus = self.get_kbd_bus()
         try:
             self.kbd_max = self.kbd_bus.GetMaxBrightness()
         except dbus.exceptions.DBusException:
-            self.kbd_bus = ''
+            self.kbd_bus = None
         if self.kbd_bus:
             self.kbd_thread = None
             self.kbd_brightness = None
@@ -351,7 +347,7 @@ class NBTests:
                 column += 1
 
         self.keyboardSubBox.pack_start(keyboard_layout, True, True, 0)
-        self.percentage_complete = Gtk.LevelBar.new_for_interval(0.0, 100.0)
+        self.percentage_complete = Gtk.LevelBar.new_for_interval(min_value=0.0, max_value=100.0)
 
         self.keyboardBox.pack_start(self.keyboardSubBox, True, True, 0)
         self.keyboardBox.pack_start(self.percentage_complete, True, True, 0)
@@ -417,7 +413,7 @@ class NBTests:
         except dbus.UnknownMethodException:
             return False
 
-    def start_kb_thread(self, _button=''):
+    def start_kb_thread(self, _button=None):
         if not self.kbd_thread:
             _button.set_sensitive(False)
             self.kbd_bus.SetBrightness(0)
@@ -425,7 +421,7 @@ class NBTests:
             self.kbd_range_ended = False
             self.kbd_thread = GLib.timeout_add(100, self.set_kb_auto_test, self.kbd_bus, self.kbd_max)
 
-    def stop_kb_thread(self, _button, _start_button=''):
+    def stop_kb_thread(self, _button, _start_button=None):
         if self.kbd_thread:
             _start_button.set_sensitive(True)
             GLib.source_remove(self.kbd_thread)

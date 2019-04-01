@@ -18,30 +18,33 @@ class BatteryParser:
             if 'BAT' in _dir or 'CMB' in _dir:
                 self.batteries["Names"].append(_dir)
 
-    # Check this code segment, for unknown reasons, it took pretty long time to execute
+    # Check this code segment, for unknown reasons,
+    # it took pretty long time to execute
     def update_battery(self):
-        _path = self.path
+        path = self.path
         for _battery in self.batteries["Names"]:
-            _dict = {"Name": _battery,
-                     "Serial": self.get_serial(_path, _battery),
-                     "Model": self.get_model(_path, _battery),
-                     "Status": self.get_status(_path, _battery),
-                     "Manufacturer": self.get_manufacturer(_path, _battery),
-                     "Min Voltage": self.get_minimal_voltage(_path, _battery)}
-            _dict["Current Use"] = self.get_current_use(_path, _battery, _dict["Min Voltage"])
-            _dict["Current Wh"] = self.get_current_cap(_path, _battery, _dict["Min Voltage"])
-            _dict["Maximum Wh"] = self.get_maximum_cap(_path, _battery, _dict["Min Voltage"])
-            _dict["Factory Wh"] = self.get_factory_cap(_path, _battery, _dict["Min Voltage"])
-            _dict["Wear Level"] = self.get_wearlevel(_dict["Factory Wh"], _dict["Maximum Wh"])
-            _dict["Estimated"] = self.get_estimated_time(_dict["Wear Level"], _dict["Maximum Wh"])
+            bat_dict = {"Name": _battery,
+                        "Serial": self.get_serial(path, _battery),
+                        "Model": self.get_model(path, _battery),
+                        "Status": self.get_status(path, _battery),
+                        "Manufacturer": self.get_manufacturer(path, _battery),
+                        "Min Voltage": self.get_minimal_voltage(path, _battery)}
+            bat_dict["Current Use"] = self.get_current_use(path, _battery, bat_dict["Min Voltage"])
+            bat_dict["Current Wh"] = self.get_current_cap(path, _battery, bat_dict["Min Voltage"])
+            bat_dict["Maximum Wh"] = self.get_maximum_cap(path, _battery, bat_dict["Min Voltage"])
+            bat_dict["Factory Wh"] = self.get_factory_cap(path, _battery, bat_dict["Min Voltage"])
+            bat_dict["Wear Level"] = self.get_wearlevel(bat_dict["Factory Wh"], bat_dict["Maximum Wh"])
+            bat_dict["Estimated"] = self.get_estimated_time(bat_dict["Wear Level"], bat_dict["Maximum Wh"])
 
-            _dict["Current Use"] = str(_dict["Current Use"]) + " Wh"
-            _dict["Current Wh"] = str(_dict["Current Wh"]) + " Wh"
-            _dict["Maximum Wh"] = str(_dict["Maximum Wh"]) + " Wh"
-            _dict["Factory Wh"] = str(_dict["Factory Wh"]) + " Wh"
-            _dict["Wear Level"] = str(_dict["Wear Level"]) + " %"
-            self.batteries[_battery] = _dict
+            bat_dict["Current Use"] = str(bat_dict["Current Use"]) + " Wh"
+            bat_dict["Current Wh"] = str(bat_dict["Current Wh"]) + " Wh"
+            bat_dict["Maximum Wh"] = str(bat_dict["Maximum Wh"]) + " Wh"
+            bat_dict["Factory Wh"] = str(bat_dict["Factory Wh"]) + " Wh"
+            bat_dict["Wear Level"] = str(bat_dict["Wear Level"]) + " %"
+            self.batteries.update({_battery: bat_dict})
 
+    # Functions NEEDS ADDITIONAL WORK + Should act as
+    # backup in case when power_supply/* files couldn't be readed
     def init_battery_uevent(self, _dict, _path):
         for _battery in range(0, _dict["Amount"]):
             _uevent = self.read_file(_path, _battery, 'uevent')
@@ -87,53 +90,55 @@ class BatteryParser:
 
     @classmethod
     def get_minimal_voltage(cls, _path, _battery):
-        _voltage = cls.read_file(_path, _battery, 'voltage_min_design')
-        if _voltage and not _voltage == 0:
-            _voltage = round(float(_voltage) / pow(1000, 2), 2)
+        min_voltage = cls.read_file(_path, _battery, 'voltage_min_design')
+        if min_voltage and not min_voltage == 0:
+            min_voltage = round(float(min_voltage) / pow(1000, 2), 2)
         else:
-            _voltage = 0
-        return _voltage
+            min_voltage = 0
+        return min_voltage
 
     @classmethod
     def get_current_use(cls, _path, _battery, _voltage):
-        _current = cls.read_file(_path, _battery, 'current_now')
-        if _current and not _current == 0:
-            _current = round(float(_current) / pow(1000, 2) * _voltage, 2)
+        current_use = cls.read_file(_path, _battery, 'current_now')
+        if current_use and not current_use == 0:
+            current_use = round(float(current_use) / pow(1000, 2) * _voltage, 2)
         else:
-            _current = 0
-        return _current
+            current_use = 0
+        return current_use
 
     @classmethod
     def get_current_cap(cls, _path, _battery, _voltage):
-        _current = cls.read_file(_path, _battery, 'charge_now')
-        if _current and not _current == 0:
-            _current = round(float(_current) / pow(1000, 2) * _voltage, 2)
+        current_cap = cls.read_file(_path, _battery, 'charge_now')
+        if current_cap and not current_cap == 0:
+            current_cap = round(float(current_cap) / pow(1000, 2) * _voltage, 2)
         else:
-            _current = 0
-        return _current
+            current_cap = 0
+        return current_cap
 
     @classmethod
     def get_maximum_cap(cls, _path, _battery, _voltage):
-        _maximum = cls.read_file(_path, _battery, 'charge_full')
-        if _maximum and not _maximum == 0:
-            _maximum = round(float(_maximum) / pow(1000, 2) * _voltage, 2)
+        maximum = cls.read_file(_path, _battery, 'charge_full')
+        if maximum and not maximum == 0:
+            maximum = round(float(maximum) / pow(1000, 2) * _voltage, 2)
         else:
-            _maximum = 0
-        return _maximum
+            maximum = 0
+        return maximum
 
     @classmethod
     def get_factory_cap(cls, _path, _battery, _voltage):
-        _factory = cls.read_file(_path, _battery, 'charge_full_design')
-        if _factory and not _factory == 0:
-            _factory = round(float(_factory) / pow(1000, 2) * _voltage, 2)
+        factory = cls.read_file(_path, _battery, 'charge_full_design')
+        if factory and not factory == 0:
+            factory = round(float(factory) / pow(1000, 2) * _voltage, 2)
         else:
-            _factory = 0
-        return _factory
+            factory = 0
+        return factory
 
     @staticmethod
     def get_wearlevel(_factory_capacity, _maximum_capacity):
-        if _factory_capacity == 0: _factory_capacity = 1
-        if _maximum_capacity == 0: _maximum_capacity = 1
+        if _factory_capacity == 0:
+            _factory_capacity = 1
+        if _maximum_capacity == 0:
+            _maximum_capacity = 1
 
         capacity = _maximum_capacity / _factory_capacity * 100
         wearlevel = round((100.00 - capacity), 2)
@@ -142,29 +147,29 @@ class BatteryParser:
     @staticmethod
     def get_estimated_time(_wearlevel, _maximum_capacity):
         if _wearlevel == 0 and _maximum_capacity == 0:
-            _estimated = "Battery may be broken or unsupported"
+            estimated = "Battery may be broken or unsupported"
         elif _wearlevel < 35:
-            _estimated = "Approx. 1 h."
+            estimated = "Approx. 1 h."
         elif _wearlevel < 60:
-            _estimated = "Approx. 40 min."
+            estimated = "Approx. 40 min."
         elif _wearlevel <= 90:
-            _estimated = "Approx. 30 min."
+            estimated = "Approx. 30 min."
         elif _wearlevel > 90:
-            _estimated = "Does not hold charge."
+            estimated = "Does not hold charge."
         else:
-            _estimated = "Cannot determine expected time."
-        return _estimated
+            estimated = "Cannot determine expected time."
+        return estimated
 
     @staticmethod
     def read_file(_path, _battery, _file):
-        _file_location = _path + _battery + '/' + _file
-        if os.path.exists(_file_location):
-            with open(_file_location, 'r') as tmp:
+        file_location = _path + _battery + '/' + _file
+        if os.path.exists(file_location):
+            with open(file_location, 'r') as tmp:
                 try:
-                    _temp = tmp.read().rstrip()
+                    content = tmp.read().rstrip()
                 except OSError:
-                    _temp = ''
-                return _temp
+                    content = ''
+                return content
 
 
 win = BatteryParser()

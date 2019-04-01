@@ -8,13 +8,13 @@ class NBOrder:
     def __init__(self, gui_base, infocollector):
         self.gui_base = gui_base
         self.infocollector = infocollector
-        self.page_box = None
+        self.page = None
         self.status_entry = None
         self.add_order_notes = None
-        self.infocollector.debug_info("Information", "Order - Variables Initilizated")
+        self.infocollector.debug_info("Information", "Order - Variables Initialized")
 
     def create_page(self):
-        self.page_box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 0)
+        self.page = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         wrapper = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         columns = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
         column_box1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0, homogeneous=True)
@@ -57,4 +57,4 @@ class NBOrder:
         columns.pack_start(column_box2, True, True, 0)
         wrapper.pack_start(columns, True, True, 0)
 
-        self.page_box.pack_start(wrapper, True, True, 0)
+        self.page.pack_start(wrapper, True, True, 0)

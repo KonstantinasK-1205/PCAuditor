@@ -60,15 +60,15 @@ class NBSummary:
     def create_page(self):
         self.page_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0, border_width=5)
         # Main Horizontal Box Wrapper
-        main_h_wrapper = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 5)
+        main_h_wrapper = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
 
         info_columnn_sb1 = self.gui_base.create_scrolling_box()
-        info_column_box1 = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
+        info_column_box1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.create_product_info_1(info_column_box1)
         info_columnn_sb1.add(info_column_box1)
 
         info_columnn_sb2 = self.gui_base.create_scrolling_box()
-        info_column_box2 = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
+        info_column_box2 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.create_product_info_2(info_column_box2)
         info_columnn_sb2.add(info_column_box2)
 
@@ -79,7 +79,7 @@ class NBSummary:
     def create_product_info_1(self, column_box):
         self.infocollector.debug_info("Information", "First  Column Creation")
         column_wrapper = Gtk.Box()
-        computer_v_box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 5)
+        computer_v_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
 
         self.create_tester_info(computer_v_box)
         self.create_sys_info_short(computer_v_box)
@@ -95,7 +95,7 @@ class NBSummary:
     def create_product_info_2(self, column_box):
         self.infocollector.debug_info("Information", "Second Column Creation")
         column_wrapper = Gtk.Box()
-        computer_v_box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 5)
+        computer_v_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
 
         self.create_category_info(computer_v_box)
         self.create_display_info_short(computer_v_box)
@@ -112,7 +112,7 @@ class NBSummary:
         self.gui_base.create_label_entry_box("Last tester", self.lastTester, box)
         tester_box, tester_label, self.tester = self.gui_base.create_label_dropbox("Tester",
                                                                                    self.infocollector.avail_testers,
-                                                                                   value_boolean=False)
+                                                                                   _value_boolean=False)
         tester_box.pack_start(tester_label, True, True, 0)
         tester_box.pack_start(self.tester, True, True, 0)
         box.pack_start(tester_box, True, True, 0)
@@ -134,11 +134,11 @@ class NBSummary:
         if self.infocollector.assignedBatch:
             box1, label, self.currentBatch = self.gui_base.create_label_dropbox("Batch",
                                                                                 self.infocollector.assignedBatch,
-                                                                                value_boolean=True, is_enabled=False)
+                                                                                _value_boolean=True, _is_enabled=False)
         else:
             box1, label, self.currentBatch = self.gui_base.create_label_dropbox("Batches",
                                                                                 self.infocollector.avail_Batches,
-                                                                                value_boolean=False)
+                                                                                _value_boolean=False)
         box1.pack_start(label, True, True, 0)
         box1.pack_start(self.currentBatch, True, True, 0)
         box.pack_start(box1, True, True, 0)
@@ -146,8 +146,8 @@ class NBSummary:
 
         cat_box, cat_label, self.category = self.gui_base.create_label_dropbox("Category",
                                                                                self.infocollector.avail_Categories,
-                                                                               specific_value=self.infocollector.assignedCategory,
-                                                                               value_boolean=False)
+                                                                               _specific_value=self.infocollector.assignedCategory,
+                                                                               _value_boolean=False)
         cat_box.pack_start(cat_label, True, True, 0)
         cat_box.pack_start(self.category, True, True, 0)
         box.pack_start(cat_box, True, True, 0)
@@ -215,7 +215,7 @@ class NBSummary:
         self.togDriveBttn = self.gui_base.create_toggleable_button("Show", self.toggle_field, 'Drive', self.togBooleans)
         self.gui_base.create_label_button_box(box, "Device Drive (-s) Information", self.togDriveBttn)
 
-        self.togDriveBox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
+        self.togDriveBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.create_drive_info_extended(self.togDriveBox)
         self.infocollector.debug_info("Information", "Summary Page - Info 2 - Drive")
 
@@ -226,7 +226,7 @@ class NBSummary:
         self.togOtherBttn = self.gui_base.create_toggleable_button("Show", self.toggle_field, 'Other', self.togBooleans)
         self.gui_base.create_label_button_box(box, "Other (-s)", self.togOtherBttn)
 
-        self.togOtherBox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
+        self.togOtherBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.create_other_info_extended(self.togOtherBox)
         self.infocollector.debug_info("Information", "Summary Page - Info 2 - Other")
 
@@ -249,7 +249,7 @@ class NBSummary:
                                                                      self.togBooleans)
         self.gui_base.create_label_button_box(box, "Screen Information", self.togDisplayBttn)
 
-        self.togDisplayBox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
+        self.togDisplayBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.create_display_info_extended(self.togDisplayBox)
         self.infocollector.debug_info("Information", "Summary Page - Info 2 - Display")
 
@@ -396,13 +396,13 @@ class NBSummary:
 
         box1, camera_label, self.otherCamera = self.gui_base.create_label_dropbox("Camera",
                                                                                   self.infocollector.avail_CameraOptions,
-                                                                                  value_boolean=self.infocollector.isCameraDetected)
+                                                                                  _value_boolean=self.infocollector.isCameraDetected)
         box2, license_label, self.otherLicense = self.gui_base.create_label_dropbox("License",
                                                                                     self.infocollector.avail_Licenses,
-                                                                                    specific_value=self.infocollector.deviceLicense)
+                                                                                    _specific_value=self.infocollector.deviceLicense)
         box3, optical_label, self.otherOptical = self.gui_base.create_label_dropbox("Optical Device",
                                                                                     self.infocollector.avail_CDROMOptions,
-                                                                                    value_boolean=self.infocollector.isCDROMDetected)
+                                                                                    _value_boolean=self.infocollector.isCDROMDetected)
         if self.infocollector.id_Dict["GUI"]["System Type"].get_text() == "Desktop":
             self.otherCamera.set_active(1)
 

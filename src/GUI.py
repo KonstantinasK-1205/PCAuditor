@@ -10,34 +10,35 @@ from Pages.NBSummary import *
 from Pages.NBTests import *
 
 
+# noinspection PyCallByClass,PyArgumentList
 class MyWindow(Gtk.Window):
     def __init__(self):
         global summary_thread, observations_thread, tests_thread, stress_thread, order_thread
         Gtk.Window.__init__(self, default_width=800, default_height=640,
                             border_width=3, window_position=1)
-        self.MainBox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
+        self.MainBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.connect("key-press-event", events.main_event_parser)
         self.connect("button-press-event", events.main_event_parser)
         self.add(self.MainBox)
-        infocollector.debug_info("Information", "GUI - Main Window initilizated")
+        infocollector.debug_info("Information", "GUI - Main Window initialized")
         # < Variable Initialization
-        self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        self.clipboard = Gtk.Clipboard.get(selection=Gdk.SELECTION_CLIPBOARD)
         self.post_dict = dict()
         self.post_dict["Observations"] = {}
 
         infocollector.debug_info("Information", "GUI - Barebones Init...")
-        self.TopContent = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 5)
+        self.TopContent = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         self.TopLine = Gtk.Box()
         self.TopContent.pack_start(self.TopLine, True, True, 0)
 
-        self.AppWrapper = Gtk.Box.new(Gtk.Orientation.VERTICAL, 5)
+        self.AppWrapper = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         self.MainNoteBook = Gtk.Notebook(tab_pos=Gtk.PositionType.LEFT)
 
-        self.BottomContent = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 5)
+        self.BottomContent = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         self.create_bottom_content(self.BottomContent)
 
         photo_bar_sb = guiTemplate.create_scrolling_box('Horizontal')
-        self.PhotoBar = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 0)
+        self.PhotoBar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         self.create_photo_bar(self.PhotoBar)
         photo_bar_sb.add(self.PhotoBar)
         infocollector.debug_info("Information", "GUI - Barebones initilizated")
@@ -62,7 +63,7 @@ class MyWindow(Gtk.Window):
             infocollector.debug_info("Information", "GUI - Summary Page")
             summary_thread = threading.Thread(target=nbSummary.create_page)
             summary_thread.start()
-            if infocollector.observations["All"]:
+            if infocollector.observations["Server"]:
                 infocollector.debug_info("Information", "GUI - Observ. Page")
                 observations_thread = threading.Thread(target=nbObservations.create_page)
                 observations_thread.start()
@@ -81,7 +82,7 @@ class MyWindow(Gtk.Window):
                 order_thread.start()
         else:
             nbSummary.create_page()
-            if infocollector.observations["All"]:
+            if infocollector.observations["Server"]:
                 nbObservations.create_page()
             nbTests.create_page()
             nbStress.create_page()
@@ -91,11 +92,11 @@ class MyWindow(Gtk.Window):
         # < Notebook | Finalising
         self.MainNoteBook.append_page(nbSummary.page_box, Gtk.Label("Summary"))
         self.MainNoteBook.append_page(nbTests.page_box, Gtk.Label("Tests"))
-        if infocollector.observations["All"]:
-            self.MainNoteBook.append_page(nbObservations.page_box, Gtk.Label("Observations"))
+        if infocollector.observations["Server"]:
+            self.MainNoteBook.append_page(nbObservations.page, Gtk.Label("Observations"))
         self.MainNoteBook.append_page(nbStress.page_box, Gtk.Label("Stress"))
         if infocollector.order_Name:
-            self.MainNoteBook.append_page(nbOrder.page_box, Gtk.Label("Order"))
+            self.MainNoteBook.append_page(nbOrder.page, Gtk.Label("Order"))
         self.MainNoteBook.set_current_page(0)
 
         self.MainNoteBook.connect('key-release-event', events.get_notebook_page, self.MainNoteBook, 'main')
@@ -141,7 +142,8 @@ class MyWindow(Gtk.Window):
     def create_photo_bar(self, production_box_col1):
         for no in range(0, len(infocollector.pictures)):
             picture_address = infocollector.pictures[no]
-            image = Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_size(picture_address, 128, 128))
+            image = Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_size(picture_address,
+                                                                                     width=128, height=128))
 
             image_event_box = Gtk.EventBox()
             image_event_box.connect('button-press-event', self.on_mouse_click_show_pic, no)
@@ -153,10 +155,10 @@ class MyWindow(Gtk.Window):
 
         if len(infocollector.pictures) == 0:
             image_add_pix_buf = GdkPixbuf.Pixbuf.new_from_file_at_size(
-                infocollector.appResourcePath + "Icons/ImageAdd.png", 64, 64)
+                infocollector.appResourcePath + "Icons/ImageAdd.png", width=64, height=64)
         else:
             image_add_pix_buf = GdkPixbuf.Pixbuf.new_from_file_at_size(
-                infocollector.appResourcePath + "Icons/ImageAdd.png", 128, 128)
+                infocollector.appResourcePath + "Icons/ImageAdd.png", width=128, height=128)
         image_add = Gtk.Image.new_from_pixbuf(image_add_pix_buf)
         image_add_event_box = Gtk.EventBox()
         image_add_event_box.connect('button-press-event', self.on_mouse_click_add_pic)
@@ -210,7 +212,7 @@ class MyWindow(Gtk.Window):
                                  "Bug report of " + _id_model + " | SN: " + _id_serial + "\n\n" + \
                                  "Problem description\n" + str(problem) + "\n------------------------------"
             bug_report["attachments"] = []
-            commands = ["sensors -j", "lscpu -J", "lshw"]
+            commands = ["sensors -j", "lscpu -J", "lshw", "xrandr", "lspci -vv"]
             for output in commands:
                 _output = subprocess.check_output(output.split(' '), encoding='utf-8')
                 _report = dict()
@@ -221,10 +223,10 @@ class MyWindow(Gtk.Window):
 
             json_data = json.dumps(bug_report)
             url = 'http://192.168.0.1:3000/hooks/zbm63BT5nmg2qFaLc/WHqeHPMXnRYB4gdE9z3rKcXKaAr44H7oamf3qsxBgZcTzASn'
-            re = requests.post(url, data=json_data)
-            print(re.url)
-            print(re.reason)
-            print(re.elapsed)
+            response = requests.post(url, data=json_data)
+            print(response.url)
+            print(response.reason)
+            print(response.elapsed)
         else:
             return ""
 
@@ -266,7 +268,8 @@ class MyWindow(Gtk.Window):
                 guiTemplate.throw_error_win(self, "Error!", error_mssg)
                 return False
         elif isinstance(_dict, Gtk.Entry):
-            if _dict.get_text() == '' or _dict.get_text() == ' ' or _dict.get_text() is None or _dict.get_text() == '0.0' or _dict.get_text() == 0.0:
+            if _dict.get_text() == '' or _dict.get_text() == ' ' or \
+                    _dict.get_text() is None or _dict.get_text() == '0.0' or _dict.get_text() == 0.0:
                 infocollector.debug_info("Error", error_mssg)
                 guiTemplate.throw_error_win(self, "Error!", error_mssg)
                 return False
@@ -368,16 +371,17 @@ class MyWindow(Gtk.Window):
         if not self.check_variable_value(nbSummary.destinationBox, "Box number cannot be empty"):
             return False
 
-        if infocollector.id_Dict["GUI"]["System Type"].get_text() == "Laptop":
-            kb_test_output = nbTests.check_keyboard_test()
-            if kb_test_output[0]:
-                if kb_test_output[1]:
-                    if not guiTemplate.throw_question_win(win, "Keyboard Error!", kb_test_output[1]):
-                        return False
-            else:
-                guiTemplate.throw_error_win(win, "Keyboard Error!", kb_test_output[1])
-                infocollector.debug_info("Information", "Keyboard test wasn't completed")
-                return False
+        if not infocollector.isDataCheckOff:
+            if infocollector.id_Dict["GUI"]["System Type"].get_text() == "Laptop":
+                kb_test_output = nbTests.check_keyboard_test()
+                if kb_test_output[0]:
+                    if kb_test_output[1]:
+                        if not guiTemplate.throw_question_win(win, "Keyboard Error!", kb_test_output[1]):
+                            return False
+                else:
+                    guiTemplate.throw_error_win(win, "Keyboard Error!", kb_test_output[1])
+                    infocollector.debug_info("Information", "Keyboard test wasn't completed")
+                    return False
 
         if is_order_info_faulty:
             infocollector.debug_info("Error", "There is a problem with order!")
@@ -387,20 +391,21 @@ class MyWindow(Gtk.Window):
             guiTemplate.throw_error_win(self, "Error!", "There is a problem with batch!")
         else:
             if nbStress.isGPUOverheating:
-                guiTemplate.set_multiline_text(nbObservations.obsNotes, nbStress.gpuOverheatingText)
+                guiTemplate.set_multiline_text(nbObservations.add_note, nbStress.gpuOverheatingText)
             if nbStress.isCPUOverheating:
-                guiTemplate.set_multiline_text(nbObservations.obsNotes, nbStress.cpuOverheatingText)
+                guiTemplate.set_multiline_text(nbObservations.add_note, nbStress.cpuOverheatingText)
             self.acquire_dict_info()
             if infocollector.server.record_exists():
                 proceed = guiTemplate.throw_question_win(self, "Computer was already logged!",
                                                          "Computer with this SN [ " +
                                                          infocollector.id_Dict["GUI"]["Serial"].get_text() +
-                                                         " ], was already logged!\nDo you want to update this computer?")
+                                                         " ], is logged!\nDo you want to update this computer?")
                 if not proceed:
                     return False
             if infocollector.server.send_json(self.post_dict):
                 has_passed = guiTemplate.throw_question_win(self, "Computer was logged!",
-                                                            "Computer was logged successfully!\nDo you want to print QR for this machine?")
+                                                            "Computer was logged successfully!\n"
+                                                            "Do you want to print QR for this machine?")
                 if has_passed:
                     printer = guiTemplate.throw_options_win(self, "Choose Printer",
                                                             "Please choose from which printer you want to print")
@@ -574,9 +579,9 @@ class MyWindow(Gtk.Window):
             self.post_dict["Batteries"][post_keyword]["Factory Wh"] = factory_wh
             self.post_dict["Batteries"][post_keyword]["Wear Level"] = wear_level
         # < Observation Information
-        self.post_dict["Observations"]["Add. comment"] = guiTemplate.get_multiline_text(nbObservations.obsNotes)
-        nbObservations.sort_obs_codes()
-        self.post_dict["Observations"] = nbObservations.selectedObs
+        self.post_dict["Observations"]["Add. comment"] = guiTemplate.get_multiline_text(nbObservations.add_note)
+        nbObservations.prepare_obs()
+        self.post_dict["Observations"] = infocollector.observations["Selected"]
         # < Other Information
         self.post_dict["Others"] = {}
         self.post_dict["Others"]["License"] = nbSummary.otherLicense.get_active_text()
@@ -627,7 +632,7 @@ class MyWindow(Gtk.Window):
     def update_preview_cb(_file_chooser, preview, dialog):
         path = dialog.get_preview_filename()
         try:
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file(str(path))
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file(filename=str(path))
             # scale the image
             max_width, max_height = 300.0, 700.0
             width = pixbuf.get_width()

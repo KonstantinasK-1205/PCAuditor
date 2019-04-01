@@ -210,8 +210,9 @@ class InfoCollector:
 
         # OBS  Variable  Initialization
         self.observations = dict()
-        self.observations["All"] = dict()
+        self.observations["Server"] = dict()
         self.observations["Recorded"] = dict()
+        self.observations["Selected"] = dict()
 
         self.assignedBatch = ""
         self.avail_Batches = ""
@@ -618,7 +619,8 @@ class InfoCollector:
         # Minimal / Maximum Clock
         minimal_clock = _master.get('cpu min mhz', '0.0').split('.')[0]
         maximum_clock = _master.get('cpu max mhz', '0.0').split('.')[0]
-        if maximum_clock == '0': maximum_clock = float(stock_clock) * 1000
+        if maximum_clock == '0':
+            maximum_clock = float(stock_clock) * 1000
 
         core_amount = _master.get('core(s) per socket', 1)
         thread_amount = _master.get('cpu(s)', 1)
@@ -1024,7 +1026,8 @@ class InfoCollector:
                         gpu_dict["Maximum"] = int(
                             sensors[_sensor][_key].get(str(_key) + '_max', gpu_dict["Critical"] - 10))
                         if gpu_dict["Critical"]:
-                            if _sensor not in gpu_dict["Dynamic"]: gpu_dict["Dynamic"][_sensor] = []
+                            if _sensor not in gpu_dict["Dynamic"]:
+                                gpu_dict["Dynamic"][_sensor] = []
                             self.gpu_sensors.append([_key, str(_key) + '_input'])
 
         # Update GPU Temperatures
@@ -1094,8 +1097,8 @@ class InfoCollector:
 
         elif "atom proccesor" in text.lower().lstrip('') or \
                 "Z36xxx" in text.lower().lstrip('') or \
-                "Z37xxx" in text.lower().lstrip(''): \
-                text = "HD Graphics (z3[6-7]xxx)"
+                "Z37xxx" in text.lower().lstrip(''):
+            text = "HD Graphics (z3[6-7]xxx)"
         return text
 
     def replace_strings(self, title, string):
