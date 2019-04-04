@@ -50,19 +50,20 @@ class Server:
     def find_server(self, ip):
         self.infocollector.debug_info("Information", "Establishing communication with server at " + str(ip))
         try:
-            response = requests.get(ip + 'if/aux_data2/', timeout=3)
+            response = requests.get(ip + 'if/aux_data/', timeout=3)
             if response and not self.serverIP:
                 aux_data = response.json()
                 self.serverIP = ip
                 self.infocollector.debug_info("Notice", "Connection was established with server at " + str(ip))
+                self.infocollector.available_batches = sorted(aux_data['Received batches'])
+                self.infocollector.available_ffactor = aux_data['Form factors']
                 self.infocollector.observations["Server"] = aux_data['Observations']
-                self.infocollector.avail_Batches = sorted(aux_data['Received batches'])
                 self.get_data_from_server()
                 if self.isConnEstablish:
                     if self.infocollector.isOrdered:
-                        self.infocollector.avail_Categories = self.infocollector.assignedCategory.split('!@#$^')
+                        self.infocollector.available_categories = self.infocollector.assigned_category.split('!@#$^')
                     else:
-                        self.infocollector.avail_Categories = sorted(aux_data['Categories'])
+                        self.infocollector.available_categories = sorted(aux_data['Categories'])
                         self.infocollector.avail_testers = sorted(aux_data['Testers'])
             elif response and self.serverIP:
                 self.infocollector.debug_info("Warning", "Communication aborted with " + str(ip) +
@@ -85,13 +86,13 @@ class Server:
 
     def get_data_from_server(self):
         if not self.infocollector.id_Dict:
-            self.infocollector._MainSysThread.join()
+            self.infocollector.main_sys_thread.join()
         request_dict = dict()
         request_dict["Serial"] = self.infocollector.id_Dict["Collected"]["Serial"]
         try:
             self.infocollector.debug_info("Information", "Searching device record in " + str(self.serverIP))
             json_dump = json.dumps(request_dict)
-            response = requests.get(self.serverIP + 'if/data2/', json_dump, timeout=3)
+            response = requests.get(self.serverIP + 'if/data/', json_dump, timeout=3)
             content = response.content.decode('UTF-8')
             status = response.status_code
         except Exception as e:
@@ -114,6 +115,9 @@ class Server:
                 self.infocollector.debug_info("Notice", "Record has been found, trying to fill data to GUI")
                 if 'Observations' in json_data:
                     self.get_recorded_observations(json_data)
+                if 'System Info' in json_data:
+                    if 'Form factor' in json_data["System Info"]:
+                        self.infocollector.assigned_form_factor = json_data["System Info"]["Form factor"]
                 if 'Others' in json_data:
                     if 'Box number' in json_data["Others"]:
                         self.infocollector.boxNumber = json_data["Others"]["Box number"]
@@ -122,14 +126,14 @@ class Server:
                     if 'Previous tester' in json_data["Others"]:
                         self.infocollector.previousTester = json_data["Others"]["Previous tester"]
                     if 'Category' in json_data["Others"]:
-                        self.infocollector.assignedCategory = json_data["Others"]["Category"]
+                        self.infocollector.assigned_category = json_data["Others"]["Category"]
                     if 'Other' in json_data["Others"]:
                         self.infocollector.obsAddNotes = json_data["Others"]["Other"]
                     if 'isSold' in json_data["Others"]:
                         self.infocollector.isSold = json_data["Others"]["isSold"]
                     if 'Received batch' in json_data["Others"]:
                         self.infocollector.avail_Batches = []
-                        self.infocollector.assignedBatch = json_data['Others']['Received batch'].split('!@#$%^&*()')
+                        self.infocollector.assigned_batch = json_data['Others']['Received batch'].split('!@#$%^&*()')
                     self.infocollector.debug_info("Information", "Loading Other Information")
                 if 'Order' in json_data:
                     if 'Client' in json_data["Order"]:
@@ -209,7 +213,7 @@ class Server:
 
     def send_json(self, post_dict):
         json_data = json.dumps(post_dict)
-        response = requests.post(self.serverIP + 'if/data2/', data=json_data, timeout=3)
+        response = requests.post(self.serverIP + 'if/data/', data=json_data, timeout=3)
         if response.status_code == 200:
             json_data = response.json()
             self.computerID = json_data['Index']

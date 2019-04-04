@@ -3,6 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/PCAuditor.iml" filepath="$PROJECT_DIR$/.idea/PCAuditor.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../PCAuditor_Admin/.idea/PCAuditor_Admin.iml" filepath="$PROJECT_DIR$/../PCAuditor_Admin/.idea/PCAuditor_Admin.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../.idea/Python.iml" filepath="$PROJECT_DIR$/../.idea/Python.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Samples/.idea/Samples.iml" filepath="$PROJECT_DIR$/../Samples/.idea/Samples.iml" />
     </modules>
   </component>
 </project>

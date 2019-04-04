@@ -214,11 +214,14 @@ class InfoCollector:
         self.observations["Recorded"] = dict()
         self.observations["Selected"] = dict()
 
-        self.assignedBatch = ""
-        self.avail_Batches = ""
+        self.assigned_batch = ""
+        self.available_batches = ""
 
-        self.avail_Categories = ""
-        self.assignedCategory = ""
+        self.assigned_category = ""
+        self.available_categories = ""
+
+        self.assigned_ffactor = ""
+        self.available_ffactor = ""
 
         self.boxNumber = ""
 
@@ -256,21 +259,22 @@ class InfoCollector:
         self.lshw_Output = self.load_system_information("lshw.log", ['lshw', '-disable', 'SCSI'], "System", "lshw")
 
         if not self.isSingleThread:
-            self._MainSysThread = threading.Thread(target=self.init_system_information)
-            self._MainSysThread.start()
+            self.main_sys_thread = threading.Thread(target=self.init_system_information)
+            self.main_sys_thread.start()
 
             self.server = Server(self, self.parsedIP)
 
-            self._DisplayThread = threading.Thread(target=self.init_display_information)
-            self._DisplayThread.start()
+            self.display_thread = threading.Thread(target=self.init_display_information)
+            self.display_thread.start()
 
-            self._MainHWThread = threading.Thread(target=self.init_main_hardware_information)
-            self._MainHWThread.start()
+            self.main_hw_thread = threading.Thread(target=self.init_main_hardware_information)
+            self.main_hw_thread.start()
 
-            self._BatteryThread = threading.Thread(target=self.init_battery_information)
-            self._BatteryThread.start()
-            self._DriveThread = threading.Thread(target=self.init_drive_information)
-            self._DriveThread.start()
+            self.battery_thread = threading.Thread(target=self.init_battery_information)
+            self.battery_thread.start()
+
+            self.drive_thread = threading.Thread(target=self.init_drive_information)
+            self.drive_thread.start()
         else:
             self.init_system_information()
             self.server = Server(self, self.parsedIP)

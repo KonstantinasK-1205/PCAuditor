@@ -43,8 +43,9 @@ class BatteryParser:
             bat_dict["Wear Level"] = str(bat_dict["Wear Level"]) + " %"
             self.batteries.update({_battery: bat_dict})
 
-    # Functions NEEDS ADDITIONAL WORK + Should act as
-    # backup in case when power_supply/* files couldn't be readed
+    # TODO: Review and launch function below
+    #   Function should act as backup in case
+    #   power_supply/* files couldn't be readed
     def init_battery_uevent(self, _dict, _path):
         for _battery in range(0, _dict["Amount"]):
             _uevent = self.read_file(_path, _battery, 'uevent')

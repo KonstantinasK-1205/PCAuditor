@@ -4,7 +4,6 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GdkPixbuf
 
 
-# noinspection PyCallByClass,PyArgumentList
 class GUITemplate:
     def __init__(self, _infocollector):
         self.infocollector = _infocollector
@@ -29,6 +28,15 @@ class GUITemplate:
     @staticmethod
     def create_entry(_text, _is_enabled=True, _box=None):
         entry = Gtk.Entry(xalign=0.5, width_chars=20, sensitive=_is_enabled, text=_text)
+        if isinstance(_box, Gtk.Box):
+            _box.pack_start(entry, False, False, 0)
+        else:
+            return entry
+
+    @staticmethod
+    def create_entry_with_signal(_text, _box=None, _signal=None, _function=None):
+        entry = Gtk.Entry(xalign=0.5, width_chars=20, text=_text)
+        entry.connect(_signal, _function)
         if isinstance(_box, Gtk.Box):
             _box.pack_start(entry, False, False, 0)
         else:
@@ -109,7 +117,7 @@ class GUITemplate:
     # < - Complex GTK Widgets
     @staticmethod
     def create_label_dropbox(_label, _possible_values, _box=None,
-                             _specific_value=None, _value_boolean=False, _is_enabled=True):
+                             _specific_value=None, _value_boolean=False, _is_enabled=True, _pack_start=False):
         group_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0, homogeneous=True)
         _label = Gtk.Label.new(_label)
         combobox = Gtk.ComboBoxText(sensitive=_is_enabled)
@@ -117,7 +125,7 @@ class GUITemplate:
         for option in _possible_values:
             combobox.append_text(option)
 
-        if _specific_value in _possible_values:
+        if _specific_value and _specific_value in _possible_values:
             combobox.set_active(_possible_values.index(_specific_value))
         else:
             if _value_boolean:
@@ -126,7 +134,11 @@ class GUITemplate:
         if isinstance(_box, Gtk.Box):
             group_box.pack_start(_label, False, False, 0)
             group_box.pack_start(combobox, True, True, 0)
-            _box.pack_start(group_box, False, False, 0)
+            if _pack_start:
+                _box.pack_start(group_box, False, False, 0)
+            else:
+                _box.pack_end(group_box, False, False, 0)
+            return combobox
         else:
             return group_box, _label, combobox
 

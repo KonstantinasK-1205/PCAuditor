@@ -45,10 +45,10 @@ class MyWindow(Gtk.Window):
 
         if not infocollector.isSingleThread:
             infocollector.debug_info("Information", "Starting to stop all gathering threads")
-            infocollector._MainHWThread.join()
-            infocollector._DisplayThread.join()
-            infocollector._BatteryThread.join()
-            infocollector._DriveThread.join()
+            infocollector.main_hw_thread.join()
+            infocollector.display_thread.join()
+            infocollector.battery_thread.join()
+            infocollector.drive_thread.join()
             infocollector.debug_info("Information", "All gathering threads were stopped")
 
             for thread in infocollector.server.serverThreads:
@@ -242,24 +242,24 @@ class MyWindow(Gtk.Window):
     @staticmethod
     def re_init_battery(_button, _field):
         infocollector.init_battery_information()
-        for child in nbSummary.togBATBox.get_children():
+        for child in nbSummary.tog_bat_box.get_children():
             child.destroy()
-        nbSummary.create_battery_info_extended(nbSummary.togBATBox)
-        nbSummary.toggle_field(nbSummary.togBATBttn, 'BAT')
+        nbSummary.create_battery_info_extended(nbSummary.tog_bat_box)
+        nbSummary.toggle_field(nbSummary.tog_bat_bttn, 'BAT')
 
     @staticmethod
     def re_init_drive(_button, _field):
         infocollector.firstLaunch = False
         infocollector.init_drive_information()
-        for child in nbSummary.togDriveBox.get_children():
+        for child in nbSummary.tog_drive_box.get_children():
             child.destroy()
 
-        for child in nbSummary.togOtherBox.get_children():
+        for child in nbSummary.tog_other_box.get_children():
             child.destroy()
-        nbSummary.create_drive_info_extended(nbSummary.togDriveBox)
-        nbSummary.create_other_info_extended(nbSummary.togOtherBox)
-        nbSummary.toggle_field(nbSummary.togDriveBttn, 'Drive')
-        nbSummary.toggle_field(nbSummary.togOtherBttn, 'Other')
+        nbSummary.create_drive_info_extended(nbSummary.tog_drive_box)
+        nbSummary.create_other_info_extended(nbSummary.tog_other_box)
+        nbSummary.toggle_field(nbSummary.tog_drive_bttn, 'Drive')
+        nbSummary.toggle_field(nbSummary.tog_other_bttn, 'Other')
 
     def check_variable_value(self, _dict, error_mssg):
         if isinstance(_dict, Gtk.SpinButton):
@@ -291,8 +291,8 @@ class MyWindow(Gtk.Window):
         else:
             is_order_info_faulty = False
 
-        if infocollector.assignedBatch == '' and not infocollector.avail_Batches == '':
-            if nbSummary.currentBatch.get_active_text() is None:
+        if infocollector.assigned_batch == '' and not infocollector.available_batches == '':
+            if nbSummary.current_batch.get_active_text() is None:
                 guiTemplate.throw_error_win(self, "Error!", "Batch dropbox cannot be empty!")
                 is_batch_faulty = True
             else:
@@ -358,17 +358,22 @@ class MyWindow(Gtk.Window):
                 return False
 
         if infocollector.id_Dict["GUI"]["System Type"].get_text() == "Laptop":
-            if not self.check_variable_value(nbSummary.otherCamera, "Camera dropbox cannot be empty"):
+            if not self.check_variable_value(nbSummary.camera_dropbox, "Camera dropbox cannot be empty"):
                 return False
-        if not self.check_variable_value(nbSummary.otherOptical, "Optical Device dropbox cannot be empty"):
+        if infocollector.id_Dict["GUI"]["System Type"].get_text() == "Desktop":
+            if not self.check_variable_value(nbSummary.sys_form_factor,
+                                             "System form factor cannot be empty for this computer type"):
+                return False
+
+        if not self.check_variable_value(nbSummary.optical_dropbox, "Optical Device dropbox cannot be empty"):
             return False
-        if not self.check_variable_value(nbSummary.otherLicense, "License dropbox cannot be empty"):
+        if not self.check_variable_value(nbSummary.license_dropbox, "License dropbox cannot be empty"):
             return False
         if not self.check_variable_value(nbSummary.tester, "Tester dropbox cannot be empty"):
             return False
         if not self.check_variable_value(nbSummary.category, "Category dropbox cannot be empty"):
             return False
-        if not self.check_variable_value(nbSummary.destinationBox, "Box number cannot be empty"):
+        if not self.check_variable_value(nbSummary.dest_box, "Box number cannot be empty"):
             return False
 
         if not infocollector.isDataCheckOff:
@@ -426,12 +431,13 @@ class MyWindow(Gtk.Window):
         self.post_dict["Log Information"] = {}
         self.post_dict["Log Information"]["Tester"] = nbSummary.tester.get_active_text()
         self.post_dict["Log Information"]["Category"] = nbSummary.category.get_active_text()
-        self.post_dict["Log Information"]["Received batch"] = nbSummary.currentBatch.get_active_text()
+        self.post_dict["Log Information"]["Received batch"] = nbSummary.current_batch.get_active_text()
         # < System Information
         self.post_dict["System Info"] = {}
         self.post_dict["System Info"]["Serial Number"] = infocollector.id_Dict["GUI"]["Serial"].get_text()
         self.post_dict["System Info"]["MB Serial"] = infocollector.id_Dict["GUI"]["MB Serial"].get_text()
         self.post_dict["System Info"]["Type"] = infocollector.id_Dict["GUI"]["System Type"].get_text().capitalize()
+        self.post_dict["System Info"]["Form factor"] = nbSummary.sys_form_factor.get_active_text()
         self.post_dict["System Info"]["Manufacturer"] = infocollector.id_Dict["GUI"]["Manufacturer"].get_text()
         self.post_dict["System Info"]["Model"] = infocollector.id_Dict["GUI"]["Model"].get_text()
         self.post_dict["System Info"]["BIOS"] = infocollector.id_Dict["Collected"]["BIOS"]
@@ -477,7 +483,7 @@ class MyWindow(Gtk.Window):
         # < Hardware Information
         self.post_dict["Hardware"] = {}
         self.post_dict["Hardware"]["Additional"] = {}
-        self.post_dict["Hardware"]["Additional"]["Camera"] = nbSummary.otherCamera.get_active_text()
+        self.post_dict["Hardware"]["Additional"]["Camera"] = nbSummary.camera_dropbox.get_active_text()
         # < Display Information
         self.post_dict["Display"] = {}
         self.post_dict["Display"]["Diagonal"] = infocollector.screen_Dict["GUI"]["Diagonal"].get_text()
@@ -541,7 +547,7 @@ class MyWindow(Gtk.Window):
             self.post_dict["Drives"][keyword]["Type"] = drivetype
         # < Optical Device Information
         self.post_dict["Optical Device"] = {}
-        self.post_dict["Optical Device"]["State"] = nbSummary.otherOptical.get_active_text()
+        self.post_dict["Optical Device"]["State"] = nbSummary.optical_dropbox.get_active_text()
         for iter_ in range(1, infocollector.cdrom_Dict["Collected"]["No"]):
             keyword = str(iter_) + " Device"
             serial = infocollector.cdrom_Dict["GUI"][keyword]["SN"].get_text()
@@ -584,8 +590,8 @@ class MyWindow(Gtk.Window):
         self.post_dict["Observations"] = infocollector.observations["Selected"]
         # < Other Information
         self.post_dict["Others"] = {}
-        self.post_dict["Others"]["License"] = nbSummary.otherLicense.get_active_text()
-        self.post_dict["Others"]["Box number"] = int(nbSummary.destinationBox.get_value())
+        self.post_dict["Others"]["License"] = nbSummary.license_dropbox.get_active_text()
+        self.post_dict["Others"]["Box number"] = int(nbSummary.dest_box.get_value())
         # < Order Information
         if infocollector.order_Name:
             self.post_dict["Order"] = {}
@@ -663,22 +669,22 @@ win.show_all()
 # win.close()
 
 # Hide all toggleable boxes
-if isinstance(nbSummary.togIDBox, Gtk.Box):
-    nbSummary.togIDBox.hide()
-if isinstance(nbSummary.togCPUBox, Gtk.Box):
-    nbSummary.togCPUBox.hide()
-if isinstance(nbSummary.togRAMBox, Gtk.Box):
-    nbSummary.togRAMBox.hide()
-if isinstance(nbSummary.togGPUBox, Gtk.Box):
-    nbSummary.togGPUBox.hide()
-if isinstance(nbSummary.togBATBox, Gtk.Box):
-    nbSummary.togBATBox.hide()
-if isinstance(nbSummary.togDriveBox, Gtk.Box):
-    nbSummary.togDriveBox.hide()
-if isinstance(nbSummary.togOtherBox, Gtk.Box):
-    nbSummary.togOtherBox.hide()
-if isinstance(nbSummary.togDisplayBox, Gtk.Box):
-    nbSummary.togDisplayBox.hide()
+if isinstance(nbSummary.tog_id_box, Gtk.Box):
+    nbSummary.tog_id_box.hide()
+if isinstance(nbSummary.tog_cpu_box, Gtk.Box):
+    nbSummary.tog_cpu_box.hide()
+if isinstance(nbSummary.tog_ram_box, Gtk.Box):
+    nbSummary.tog_ram_box.hide()
+if isinstance(nbSummary.tog_gpu_box, Gtk.Box):
+    nbSummary.tog_gpu_box.hide()
+if isinstance(nbSummary.tog_bat_box, Gtk.Box):
+    nbSummary.tog_bat_box.hide()
+if isinstance(nbSummary.tog_drive_box, Gtk.Box):
+    nbSummary.tog_drive_box.hide()
+if isinstance(nbSummary.tog_other_box, Gtk.Box):
+    nbSummary.tog_other_box.hide()
+if isinstance(nbSummary.tog_display_box, Gtk.Box):
+    nbSummary.tog_display_box.hide()
 
 infocollector.debug_info("Information", "Application was launched!")
 Gtk.main()
