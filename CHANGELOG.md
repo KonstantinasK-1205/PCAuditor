@@ -1,5 +1,43 @@
 # Changelog
 
+## [v5.3.2] (2019-05-07)
+
+**Major Changes:**
+
+- BatteryParser
+    - Moved all InfoCollector + Shell Script gather/parser and handling to seperate module, allowing for easier management and cleaner solution.
+    - Improved battery parsing information effectiviness, and providing almost instant update
+
+- DriveGather
+    - Moved all InfoCollector + Shell Script gather/parser and handling to seperate module, allowing for easier management and cleaner solution.
+    - Improved CDROM gathering/parsing, additionaly software will warn user if there is any optical disk inside computer
+    - Now it is possible to "Quick Format" disk drive ( Wipping out partition tables )
+
+- GUI
+    - Added Bug Report, for better issues, error handling and fixing
+    
+- Server
+    - Changed server GET address, in favor of dropping old GET support
+
+**Minor Changes - Cleanup:**
+- A lot of code cleanup
+- Added support for Ultrabook batteries (CMB) | *BatteryParser*
+- Added information backup source, if main source gathering fails | *BatteryParser*
+- Added new field, Form Factor which is required field if computer is Desktop | *InfoCollector & GUI*
+- Added possibility to disable keyboard test through command line | *InfoCollector*
+- Reworked GPU Sensors parsing, making it more crash-free | *InfoCollector*
+- Suppressed sensors error messages, when computer has GPU which can automatically disable itself | *InfoCollector*
+- Changed extended box functions, to make it cleaner and more readable | *NBSummary*
+- Changed dropbox creation, to make it cleaner and more readable | *NBSummary*
+- Changed overheating texts | *NBStress*
+- Improved Observation tab creation, by eliminating lot of unnecessary loops | *NBObservations*
+- Optimised keyboard event, by reducing keypress IF  | *Events*
+
+**Closed issues & Fixed bugs:**
+- Fixed bug, when stress tab would freeze if CPU didn't have max temperature pre-set
+- Fixed bug where GPU Temperature would update twice as fast as CPU. [\#6](https://github.com/KonstantinasK-1205/PCAuditor/issues/6)
+- Fixed bug where BatteryParser would crash while trying to read or edit the file it can't load. [\#4](https://github.com/KonstantinasK-1205/PCAuditor/issues/4)
+
 ## [v5.3.1] (2019-03-21)
 
 **Minor Changes - Cleanup:**
