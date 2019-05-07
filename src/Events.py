@@ -13,13 +13,13 @@ class Events:
         self.main_nb_current_page = ''  # Keeps Main Notebook Page Index
         self.sub_nb_current_page = ''  # Keeps Sub Notebook Page Index
 
-        self.key_pressed_signal_id = None  # Keeps Key   Press   Event Signal ID
-        self.key_released_signal_id = None  # Keeps Key   Release Event Signal ID
-        self.is_keyboard_event_active = False  # Keeps Keyboard      Event Boolean
+        self.key_pressed_signal_id = None  # Keeps Key Press Event Signal ID
+        self.key_released_signal_id = None  # Keeps Key Release Event Signal ID
+        self.is_keyboard_event_active = False  # Keeps Keyboard Event Boolean
 
-        self.mouse_pressed_signal_id = None  # Keeps Mouse Press   Event Signal ID
+        self.mouse_pressed_signal_id = None  # Keeps Mouse Press Event Signal ID
         self.mouse_released_signal_id = None  # Keeps Mouse Release Event Signal ID
-        self.is_mouse_event_active = False  # Keeps Mouse         Event Boolean
+        self.is_mouse_event_active = False  # Keeps Mouse Event Boolean
 
         self.first_key_event = True  # Turns false when any first button is pressed
         self.is_capslock_on = False  # Checks CapsLock State

@@ -6,6 +6,7 @@ from gi.repository import Gtk
 
 class NBSummary:
     def __init__(self, gui_base, infocollector):
+        self.parent = None
         self.gui_base = gui_base
         self.infocollector = infocollector
 
@@ -36,27 +37,30 @@ class NBSummary:
         self.license_dropbox = None
         self.optical_dropbox = None
 
-        self.last_tester = None  # Last  Tester (Static - Non Changable after Assigning)
+        self.last_tester = None  # Last  Tester (Static - Non Changeable after Assigning)
         self.tester = None  # Current Tester (Selective from DropBox)
         self.current_batch = None  # Initial Computer Category
         self.category = None  # Computer Category, which can be changed later
         self.tog_id_box = None  # System Main Box
-        self.tog_id_bttn = None  # System Toggable Button
-        self.tog_cpu_box = None  # Processor Toggable Button
+        self.tog_id_bttn = None  # System Toggleable Button
+        self.tog_cpu_box = None  # Processor Toggleable Button
         self.tog_cpu_bttn = None  # Processor Main Box
         self.tog_ram_box = None  # RAM Main Box
-        self.tog_ram_bttn = None  # RAM Toggable Button
+        self.tog_ram_bttn = None  # RAM Toggleable Button
         self.tog_gpu_box = None  # GPU Main Box
-        self.tog_gpu_bttn = None  # GPU Toggable Button
+        self.tog_gpu_bttn = None  # GPU Toggleable Button
         self.tog_bat_box = None  # Battery Main Box
-        self.tog_bat_bttn = None  # Battery Toggable Button
+        self.tog_bat_bttn = None  # Battery Toggleable Button
         self.tog_drive_box = None  # Drive Main Box
-        self.tog_drive_bttn = None  # Drive Toggable Button
+        self.tog_drive_bttn = None  # Drive Toggleable Button
         self.tog_other_box = None  # Other Main Box
-        self.tog_other_bttn = None  # Other Toggable Button
+        self.tog_other_bttn = None  # Other Toggleable Button
         self.tog_display_box = None  # Display Main Box
-        self.tog_display_bttn = None  # Display Toggable Button
-        self.infocollector.debug_info("Information", "Summary NB - Variables Initilizated")
+        self.tog_display_bttn = None  # Display Toggleable Button
+        self.infocollector.debug_info("Information", "Summary NB - Variables Initialized")
+
+    def set_parent(self, _parent):
+        self.parent = _parent
 
     def create_page(self):
         self.page_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0, border_width=5)
@@ -362,40 +366,49 @@ class NBSummary:
     def create_drive_info_extended(self, box):
         self.togBooleans['Drive']['Box'] = box
 
-        drive_gui = self.infocollector.drive_Dict["GUI"]
-        drive_col = self.infocollector.drive_Dict["Collected"]
+        drive_gui = self.infocollector.drive_Dict["GUI"]["Drives"]
+        drive_col = self.infocollector.drive_Dict["Collected"]["Drives"]
         tpl = self.gui_base
 
-        for iter_ in range(1, drive_col["No"]):
+        for iter_ in range(1, drive_col["Amount"] + 1):
             if iter_ > 1:
                 tpl.create_label('', box)
 
-            keyword = str(iter_) + " Drive"
+            keyword = str(iter_) + " Device"
             if keyword not in drive_gui:
                 drive_gui[keyword] = {}
 
-            drive_gui[keyword]["SN"] = tpl.create_entry(drive_col[keyword]["SN"])
+            drive_gui[keyword]["Serial"] = tpl.create_entry(drive_col[keyword]["Serial"])
             drive_gui[keyword]["Manufacturer"] = tpl.create_entry(drive_col[keyword]["Manufacturer"])
             drive_gui[keyword]["Model"] = tpl.create_entry(drive_col[keyword]["Model"])
             drive_gui[keyword]["Interface"] = tpl.create_entry(drive_col[keyword]["Interface"])
             drive_gui[keyword]["Capacity"] = tpl.create_entry(drive_col[keyword]["Capacity"])
             drive_gui[keyword]["Health"] = tpl.create_entry(drive_col[keyword]["Health"])
             drive_gui[keyword]["Description"] = drive_col[keyword]["Description"]
+            drive_gui[keyword]["Format"] = tpl.create_button("Quick Drive Format", self.init_drive_format,
+                                                             _field=drive_col[keyword]["Block"])
 
-            tpl.create_label_entry_box("Serial", drive_gui[keyword]["SN"], box)
+            tpl.create_label_entry_box("Serial", drive_gui[keyword]["Serial"], box)
             tpl.create_label_entry_box("Vendor", drive_gui[keyword]["Manufacturer"], box)
             tpl.create_label_entry_box("Model", drive_gui[keyword]["Model"], box)
             tpl.create_label_entry_box("Interface", drive_gui[keyword]["Interface"], box)
             tpl.create_label_entry_box("Capacity", drive_gui[keyword]["Capacity"], box)
             tpl.create_label_entry_box("Health", drive_gui[keyword]["Health"], box, drive_gui[keyword]["Description"])
-
+            tpl.create_label_button_box(box, "", drive_gui[keyword]["Format"], "This action will format the drive,\nit "
+                                                                               "will not securely wipe (destroy) it!")
         box.show_all()
+
+    def init_drive_format(self, _widget, _disk_block):
+        confirmation = self.gui_base.throw_question_win(self.parent, "Quick Formatting " + str(_disk_block),
+                                                        "Are you sure want to quick format this drive?")
+        if confirmation:
+            self.infocollector.drive_class.clean_disk(_disk_block)
 
     def create_other_info_extended(self, box):
         self.togBooleans['Other']['Box'] = box
 
-        cd_gui = self.infocollector.cdrom_Dict["GUI"]
-        cd_col = self.infocollector.cdrom_Dict["Collected"]
+        cd_gui = self.infocollector.drive_Dict["GUI"]['Devices']
+        cd_col = self.infocollector.drive_Dict["Collected"]['Devices']
         tpl = self.gui_base
 
         self.camera_dropbox = tpl.create_label_dropbox("Camera",
@@ -411,7 +424,7 @@ class NBSummary:
         if self.infocollector.id_Dict["Collected"]["System Type"] == "Desktop":
             self.camera_dropbox.set_active(1)
 
-        for iter_ in range(1, cd_col["No"]):
+        for iter_ in range(1, cd_col["Amount"] + 1):
             if iter_ > 1:
                 tpl.create_label('', box)
 
@@ -419,11 +432,15 @@ class NBSummary:
             if keyword not in cd_gui:
                 cd_gui[keyword] = {}
 
-            cd_gui[keyword]["SN"] = tpl.create_entry(cd_col[keyword]["SN"])
+            cd_gui[keyword]["Serial"] = tpl.create_entry(cd_col[keyword]["Serial"])
             cd_gui[keyword]["Model"] = tpl.create_entry(cd_col[keyword]["Model"])
 
-            tpl.create_label_entry_box("Serial", cd_gui[keyword]["SN"], box)
+            tpl.create_label_entry_box("Serial", cd_gui[keyword]["Serial"], box)
             tpl.create_label_entry_box("Model", cd_gui[keyword]["Model"], box)
+
+            if not cd_col[keyword]["Empty"]:
+                cd_gui[keyword]["Empty"] = tpl.create_entry("Optical disk detected!", False)
+                tpl.create_label_entry_box("", cd_gui[keyword]["Empty"], box)
             tpl.create_separator(box, 'horizontal')
 
         box.show_all()

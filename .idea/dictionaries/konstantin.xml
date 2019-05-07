@@ -5,6 +5,7 @@
       <w>backlight</w>
       <w>bclock</w>
       <w>bdescription</w>
+      <w>blocklocation</w>
       <w>bproduct</w>
       <w>bserial</w>
       <w>bttn</w>
@@ -30,9 +31,11 @@
       <w>fffd</w>
       <w>ffff</w>
       <w>freedesktop</w>
+      <w>gbps</w>
       <w>gintaras</w>
       <w>godex</w>
       <w>haswell</w>
+      <w>hdparm</w>
       <w>hspace</w>
       <w>ident</w>
       <w>iface</w>
@@ -42,15 +45,18 @@
       <w>keycap</w>
       <w>leds</w>
       <w>lenovo</w>
+      <w>lsblk</w>
       <w>lscp</w>
       <w>lscpu</w>
       <w>lshw</w>
+      <w>lsscsi</w>
       <w>luvcview</w>
       <w>matplot</w>
       <w>moew</w>
       <w>moulage</w>
       <w>mssg</w>
       <w>multiline</w>
+      <w>multithread</w>
       <w>nouveau</w>
       <w>numlock</w>
       <w>nvidia</w>
@@ -67,6 +73,8 @@
       <w>radeon</w>
       <w>rawhr</w>
       <w>rocketchat</w>
+      <w>sata</w>
+      <w>smartctl</w>
       <w>sopena</w>
       <w>spinbutton</w>
       <w>spinup</w>
@@ -75,6 +83,7 @@
       <w>treeview</w>
       <w>treeviewcolumn</w>
       <w>uevent</w>
+      <w>unformatted</w>
       <w>wearlevel</w>
       <w>wspace</w>
       <w>xrandr</w>

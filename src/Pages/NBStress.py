@@ -53,7 +53,7 @@ class NBStress:
                               "#00ebd8"]
         self.gpuPlotColors = ["#f60000", "#f600f6", "#fff600"]
 
-        self.infocollector.debug_info("Information", "Stress - Variables Initilizated")
+        self.infocollector.debug_info("Information", "Stress - Variables Initialized")
 
     def create_page(self):
         self.page_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -121,21 +121,17 @@ class NBStress:
             if self.isStressingCPU and maximum_cpu_value >= cpu_temps["Critical"]:
                 if not self.isCPUOverheating:
                     self.cpuTempAtOverheat = maximum_cpu_value
-                    self.cpuOverheatingText = "CPU is overheating! Allowed ' " + str(
-                        cpu_temps["Critical"]) + " C' - At the moment it was overheating '" + str(
-                        maximum_cpu_value) + "'C"
-                    self.gui_base.throw_error_win(parent, "Overheating!", "CPU is overheating!\nAllowed ' " + str(
-                        cpu_temps["Critical"]) + " C' - Currently '" + str(maximum_cpu_value) + "'C")
+                    self.cpuOverheatingText = "CPU overheats! " + str(maximum_cpu_value) + "C / " + str(
+                        cpu_temps["Critical"]) + " C"
+                    self.gui_base.throw_error_win(parent, "Overheating!", self.cpuOverheatingText)
                 self.isCPUOverheating = True
             # If Stress isn't launched on CPU, compare it with max allowed temperature
             elif not self.isStressingCPU and maximum_cpu_value >= cpu_temps["Maximum"]:
                 if not self.isCPUOverheating:
                     self.cpuTempAtOverheat = maximum_cpu_value
-                    self.cpuOverheatingText = "CPU is overheating! Allowed ' " + str(
-                        cpu_temps["Maximum"]) + " C' - At the moment it was overheating '" + str(
-                        maximum_cpu_value) + "'C"
-                    self.gui_base.throw_error_win(parent, "Overheating!", "CPU is overheating!\nAllowed ' " + str(
-                        cpu_temps["Maximum"]) + " C' - Currently '" + str(maximum_cpu_value) + "'C")
+                    self.cpuOverheatingText = "CPU overheats! " + str(maximum_cpu_value) + "C / " + str(
+                        cpu_temps["Maximum"]) + " C"
+                    self.gui_base.throw_error_win(parent, "Overheating!", self.cpuOverheatingText)
                 self.isCPUOverheating = True
 
         # GPU Temperature handling block, adjust label color and throw error if CPU overheats (75c.)
@@ -149,27 +145,24 @@ class NBStress:
                 color_index += 1
 
             label += ("\nGPU " + str(maximum_gpu_value) + " C")
+
             # If Stress is launched on GPU, compare it with max allowed critical temperature
             if self.isStressingGPU and maximum_gpu_value >= gpu_temps["Critical"]:
                 if not self.isGPUOverheating:
                     self.gpuTempAtOverheat = maximum_gpu_value
-                    self.gpuOverheatingText = "GPU is overheating! Allowed ' " + str(
-                        gpu_temps["Critical"]) + " C' - At the moment it was overheating '" + str(
-                        maximum_gpu_value) + "'C"
-                    self.gui_base.throw_error_win(parent, "Overheating!", "GPU is overheating!\nAllowed ' " + gpu_temps[
-                        "Critical"] + " C' - Currently '" + str(maximum_gpu_value) + "'C")
-                self.isGPUOverheating = True
+                    self.gpuOverheatingText = "GPU overheats! " + str(maximum_gpu_value) + "C / " + str(
+                        gpu_temps["Critical"] + " C")
+                    self.gui_base.throw_error_win(parent, "Overheating!", self.gpuOverheatingText)
+                    self.isGPUOverheating = True
+
             # If Stress is launched on GPU, compare it with max allowed critical temperature
             elif not self.isStressingGPU and maximum_gpu_value >= gpu_temps["Maximum"]:
                 if not self.isGPUOverheating:
                     self.gpuTempAtOverheat = maximum_gpu_value
-                    self.gpuOverheatingText = "GPU is overheating! Allowed ' " + str(
-                        gpu_temps["Maximum"]) + " C' - At the moment it was overheating '" + str(
-                        maximum_gpu_value) + "'C"
-                    self.gui_base.throw_error_win(parent, "Overheating!",
-                                                  "GPU is overheating!\nAllowed '  " + gpu_temps[
-                                                      "Maximum"] + " C' - Currently '" + str(maximum_gpu_value) + "'C")
-                self.isGPUOverheating = True
+                    self.gpuOverheatingText = "GPU overheats! " + str(maximum_gpu_value) + "C / " + str(
+                        gpu_temps["Maximum"] + " C")
+                    self.gui_base.throw_error_win(parent, "Overheating!", self.gpuOverheatingText)
+                    self.isGPUOverheating = True
 
         notebook.set_tab_label_text(self.page_box, label)
 

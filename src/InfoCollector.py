@@ -1,12 +1,13 @@
 import datetime
 import getopt
-import re
-import subprocess
 import sys
 import warnings
 
 from HWGathering.BatteryParser import *
+from HWGathering.DriveGather import *
 from Server import *
+
+# import psutil
 
 warnings.simplefilter("ignore")
 
@@ -136,6 +137,8 @@ class InfoCollector:
                               ("Pentium", "")]
     gpu_model_replacements = [("[AMD]", "AMD"),
                               ("Nvidia", "NVIDIA"),
+                              # AMD GPU Models
+                              ("Trinity", ""),
                               (",", ""),
                               (",", ""),
                               ("ASUSTek Computer Inc.", ""),
@@ -168,6 +171,8 @@ class InfoCollector:
                               ("Sony", ""),
                               ("(rev a1)", ""),
                               ("(rev a2)", ""),
+                              ("[", ""),
+                              ("]", ""),
                               ("[]", "")]
 
     def __init__(self):
@@ -188,6 +193,8 @@ class InfoCollector:
         self.outputFile = None
         self.parse_cli_arg()
 
+        self.drive_class = drive_class
+
         # Init all dicts
         self.id_Dict = dict()
         self.cpu_Dict = dict()
@@ -195,7 +202,7 @@ class InfoCollector:
         self.ram_Dict = dict()
         self.screen_Dict = dict()
         self.drive_Dict = dict()
-        self.cdrom_Dict = dict()
+        self.drive_Dict = dict()
         self.battery_Dict = dict()
 
         self.currentGPUTry = 0
@@ -248,13 +255,10 @@ class InfoCollector:
                                "Win 7 HP", "Win 7 Str", "Win 7 Pro", "Win 7 Ult",
                                "Win 8", "Win 8 Pro", "Win 8.1", "Win 8.1 Pro",
                                "Win 10", "Win 10 Pro"]
-        self.debug_info("Information", "All Variables initilizated\n")
+        self.debug_info("Information", "All Variables initialized\n")
 
         self.cpu_temp_key = None
         self.cpu_sensors = None
-
-        self.gpu_temp_key = None
-        self.gpu_sensors = None
 
         self.lshw_Output = self.load_system_information("lshw.log", ['lshw', '-disable', 'SCSI'], "System", "lshw")
 
@@ -289,7 +293,7 @@ class InfoCollector:
         try:
             argument_list = sys.argv[1:]
             unix_options = "d:axo:s:t:"
-            gnu_options = ["debug", "advanceddebug", "skipkeyboard", "output", "serverip", "threaded"]
+            gnu_options = ["debug", "advanceddebug", "skipkeyboard", "output", "server_ip", "threaded"]
 
             arguments, values = getopt.getopt(argument_list, unix_options, gnu_options)
             for current_argument, current_value in arguments:
@@ -321,7 +325,7 @@ class InfoCollector:
                     self.outputFile = current_value
                     self.isOutputModeOn = True
 
-                elif current_argument in ("-s", "--serverip"):
+                elif current_argument in ("-s", "--server_ip"):
                     current_value = "http://" + str(current_value) + ":8000/"
                     self.parsedIP = current_value.split()
                     self.isIPManuallySet = True
@@ -360,6 +364,7 @@ class InfoCollector:
     # < Debug Functions
     def debug_info(self, log_level, text=''):
         if self.isDebugOn and self.logFilterLevel <= self.debug_categories[log_level]:
+            # noinspection PyProtectedMember
             current_frame = sys._getframe().f_back
             filename = current_frame.f_code.co_filename.split("/", -1)[-1]
             function = current_frame.f_code.co_name + '()'
@@ -428,6 +433,7 @@ class InfoCollector:
         self.gpu_Dict["Stats"] = {}
         self.gpu_Dict["Stats"]["Temps"] = {}
         self.gpu_Dict["Stats"]["Temps"]["Dynamic"] = {}
+        self.gpu_Dict["Stats"]["Temps"]["Sources"] = {}
         self.gpu_Dict["Stats"]["Clock"] = {}
         self.get_gpu()
 
@@ -444,17 +450,11 @@ class InfoCollector:
         self.get_camera()
 
     def init_drive_information(self):
-        self.drive_Output = self.load_information_output("Drive", "Drives.log", 5)
-        self.drive_Dict["Collected"] = {}
-        self.drive_Dict["Collected"]["No"] = 1
+        self.drive_Dict["Collected"] = drive_class.get_disk_drives()
         self.drive_Dict["GUI"] = {}
-        self.get_drives()
-
-        self.cdrom_Dict["Collected"] = {}
-        self.cdrom_Dict["Collected"]["No"] = 1
-        self.cdrom_Dict["GUI"] = {}
-        self.isCDROMDetected = False
-        self.get_cdrom()
+        self.drive_Dict["GUI"]['Drives'] = {}
+        self.drive_Dict["GUI"]['Devices'] = {}
+        self.isCDROMDetected = drive_class.is_cdrom_present
 
     def init_battery_information(self):
         self.debug_info("Information", "Battery Information Started")
@@ -770,11 +770,11 @@ class InfoCollector:
         while 1:
             iter_str = "CDROM " + str(iter_no)
             if iter_str in self.drive_Output:
-                keyword = str(self.cdrom_Dict['Collected']["No"]) + " Device"
+                keyword = str(self.drive_Dict['Collected']["No"]) + " Device"
                 master = self.get_regex_info(iter_str + r'[\s\S]+?\=+\n?', self.drive_Output, 'search', 0)
                 if master:
                     self.drive_Output = self.drive_Output.replace(master, '')
-                    self.cdrom_Dict['Collected'][keyword] = {}
+                    self.drive_Dict['Collected'][keyword] = {}
                 if not master:
                     break
 
@@ -782,10 +782,10 @@ class InfoCollector:
                 model = self.get_regex_info(r'Model: (.+)', master, 'search', 1).rstrip('\n')
                 block = self.get_regex_info(r'BlockLoc: (.+)', master, 'search', 1).rstrip('\n')
 
-                self.cdrom_Dict['Collected'][keyword]["SN"] = serial
-                self.cdrom_Dict['Collected'][keyword]["Model"] = model
-                self.cdrom_Dict['Collected'][keyword]["BlockLoc"] = block
-                self.cdrom_Dict['Collected']["No"] += 1
+                self.drive_Dict['Collected'][keyword]["SN"] = serial
+                self.drive_Dict['Collected'][keyword]["Model"] = model
+                self.drive_Dict['Collected'][keyword]["BlockLoc"] = block
+                self.drive_Dict['Collected']["No"] += 1
                 self.debug_info("Information", "\tOptical Device Information - " + iter_str + " loaded!")
                 self.isCDROMDetected = True
                 iter_no += 1
@@ -926,10 +926,7 @@ class InfoCollector:
             self.isCameraDetected = False
 
     def get_core_clock(self):
-        cpu_info = subprocess.Popen(['cat', '/proc/cpuinfo'], stdout=subprocess.PIPE)
-        mhz_grep = subprocess.Popen(['grep', '-i', 'mhz'], stdin=cpu_info.stdout, stdout=subprocess.PIPE)
-        output = subprocess.check_output(('grep', '-Eo', r'[0-9]{1,}\.[0-9]{1,}*'), stdin=mhz_grep.stdout).decode(
-            'utf-8').rstrip('\r\n')
+        output = subprocess.check_output(['sed', '-n', 's/cpu MHz\t\t: //p', '/proc/cpuinfo']).decode('utf-8')
         current_core = 1
         for clock in output.split('\n'):
             clock = clock.split('.')[0]
@@ -943,12 +940,14 @@ class InfoCollector:
                 else:
                     break
 
+    #    @staticmethod
     @staticmethod
     def get_sensors_output():
-        output = subprocess.run(["sensors", "-j"], stdout=subprocess.PIPE, encoding='utf-8').stdout
-        new = ''
+        output = subprocess.run(["sensors", "-j"], stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL, encoding='utf-8').stdout
         #        with open("Sensors.log", 'r') as tmp:
         #              output = tmp.read()
+        new = ''
         for line in output.splitlines():
             if not re.search(r'^,$', line):
                 new += line
@@ -974,12 +973,32 @@ class InfoCollector:
             for _key, _value in sensors[self.cpu_temp_key].items():
                 if isinstance(_value, dict):
                     for _sub_key, _sub_value in sensors[self.cpu_temp_key][_key].items():
+                        # If there is MAX CPU value then assign it
                         if 'Maximum' not in cpu_dict and 'max' in _sub_key:
-                            cpu_dict["Maximum"] = _sub_value - 10
+                            if not _sub_value > 70:
+                                cpu_dict["Maximum"] = _sub_value - 10
+                            else:
+                                cpu_dict["Maximum"] = _sub_value
+
+                        # If there is Crit CPU value then assign it
                         if 'Critical' not in cpu_dict and 'crit' in _sub_key:
-                            cpu_dict["Critical"] = _sub_value - 10
-                            if 'Maximum' not in cpu_dict:
-                                cpu_dict["Maximum"] = _sub_value - 20
+                            if not _sub_value > 80:
+                                cpu_dict["Critical"] = _sub_value - 10
+                            else:
+                                cpu_dict["Critical"] = _sub_value
+
+                        # If there is no Max, but we have critical, generate critical
+                        if 'Maximum' not in cpu_dict and 'crit' in _sub_key:
+                            cpu_dict["Maximum"] = _sub_value - 10
+
+                        # If there is no Critical, but we have maximum, generate critical
+                        if 'Critical' not in cpu_dict and 'max' in _sub_key:
+                            cpu_dict["Critical"] = _sub_value + 10
+
+                        # If there is no Max and Crit values, then assign default values
+                        if 'Maximum' not in cpu_dict and 'Critical' not in cpu_dict:
+                            cpu_dict["Maximum"] = 70
+                            cpu_dict["Critical"] = 80
 
                         if 'input' in _sub_key:
                             _sensor = [_key, _sub_key]
@@ -997,10 +1016,10 @@ class InfoCollector:
                 _value = int(source_dict[_main_key][_sub_key])
                 destination_dict[_main_key].append(_value)
 
-    def update_gpu_temp(self, gpu_dict, sensors):
+    def update_gpu_temp(self, _gpu_dict, _sensors):
         # Single time - Find GPU Main Sensors Name
-        if not self.gpu_temp_key:
-            self.gpu_temp_key = []
+        gpu_dictionary = self.gpu_Dict["Stats"]["Temps"]["Sources"]
+        if not gpu_dictionary:
             possible_gpu_regex = []
             if 'nvidia' in self.gpu_Dict["Collected"]["1 Manufacturer"].lower():
                 possible_gpu_regex.append('nouveau')
@@ -1014,36 +1033,34 @@ class InfoCollector:
                 possible_gpu_regex.append('radeon')
                 possible_gpu_regex.append('amdgpu')
 
-            for _key, _value in sensors.items():
+            for _key, _value in _sensors.items():
                 for regex in possible_gpu_regex:
                     if re.findall(regex, _key):
-                        if _key not in self.gpu_temp_key:
-                            self.gpu_temp_key.append(_key)
+                        if _key not in gpu_dictionary:
+                            gpu_dictionary[_key] = {}
 
-        # Single time - Find Max & Critical temperatures and Find all sensors values
-        if not self.gpu_sensors and self.gpu_temp_key:
-            self.gpu_sensors = []
-            for _sensor in self.gpu_temp_key:
-                for _key, _value in sensors[_sensor].items():
+            # Find Max & Critical temperatures and Find all sensors values
+            for _sensor in gpu_dictionary.keys():
+                for _key, _value in _sensors[_sensor].items():
                     if isinstance(_value, dict) and 'temp' in _key:
-                        gpu_dict["Critical"] = int(sensors[_sensor][_key].get(str(_key) + '_crit', 0)) - 15
-                        gpu_dict["Maximum"] = int(
-                            sensors[_sensor][_key].get(str(_key) + '_max', gpu_dict["Critical"] - 10))
-                        if gpu_dict["Critical"]:
-                            if _sensor not in gpu_dict["Dynamic"]:
-                                gpu_dict["Dynamic"][_sensor] = []
-                            self.gpu_sensors.append([_key, str(_key) + '_input'])
+                        _gpu_dict["Critical"] = int(_sensors[_sensor][_key].get(str(_key) + '_crit', 0)) - 15
+                        _gpu_dict["Maximum"] = int(
+                            _sensors[_sensor][_key].get(str(_key) + '_max', _gpu_dict["Critical"] - 10))
+                        if _gpu_dict["Critical"]:
+                            if _sensor not in _gpu_dict["Dynamic"]:
+                                _gpu_dict["Dynamic"][_sensor] = []
+                            gpu_dictionary[_sensor] = {}
+                            gpu_dictionary[_sensor]["Main Key"] = _key
+                            gpu_dictionary[_sensor]["Sub Key"] = str(_key) + '_input'
 
         # Update GPU Temperatures
-        if self.gpu_temp_key:
-            for _sensor in self.gpu_temp_key:
-                source_dict = sensors[_sensor]
-                destination_dict = gpu_dict["Dynamic"]
-                for _iter in range(len(self.gpu_sensors)):
-                    _main_key = self.gpu_sensors[_iter][0]
-                    _sub_key = self.gpu_sensors[_iter][1]
-                    _value = int(source_dict[_main_key].get(_sub_key, 0))
-                    destination_dict[_sensor].append(_value)
+        if gpu_dictionary:
+            for _sensor in gpu_dictionary.keys():
+                source_dict = _sensors[_sensor]
+                _main_key = gpu_dictionary[_sensor]["Main Key"]
+                _sub_key = gpu_dictionary[_sensor]["Sub Key"]
+                _value = int(source_dict[_main_key].get(_sub_key, 0))
+                _gpu_dict["Dynamic"][_sensor].append(_value)
 
     # < Other (Unsorted) Functions
     @staticmethod
@@ -1137,3 +1154,4 @@ class InfoCollector:
 
 
 battery_class = BatteryParser()
+drive_class = DiskChecker()

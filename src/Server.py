@@ -7,12 +7,12 @@ import requests
 class Server:
     def __init__(self, infocollector, ip_list):
         self.infocollector = infocollector
-        self.isConnectible = False
-        self.isConnEstablish = False
-        self.computerID = None
+        self.is_connectible = False
+        self.is_connection_established = False
+        self.computer_id = None
 
-        self.serverThreads = []
-        self.serverIP = ""
+        self.server_threads = []
+        self.server_ip = ""
         self.infocollector.debug_info("Information", "Server Variables Initialized")
         if not ip_list:
             ip_list = ['http://192.168.0.1:8000/',
@@ -25,10 +25,10 @@ class Server:
         if not self.infocollector.isSingleThread:
             for ip in ip_list:
                 try:
-                    if not self.serverIP:
+                    if not self.server_ip:
                         thread = threading.Thread(name=ip, target=self.find_server, args=(ip, ip_list,))
                         thread.start()
-                        self.serverThreads.append(thread)
+                        self.server_threads.append(thread)
                     else:
                         self.infocollector.debug_info("Information",
                                                       "Skipping" + str(ip) + ", because Server IP already defined")
@@ -38,7 +38,7 @@ class Server:
         else:
             for ip in ip_list:
                 try:
-                    if not self.serverIP:
+                    if not self.server_ip:
                         self.find_server(ip)
                     else:
                         self.infocollector.debug_info("Information",
@@ -51,21 +51,21 @@ class Server:
         self.infocollector.debug_info("Information", "Establishing communication with server at " + str(ip))
         try:
             response = requests.get(ip + 'if/aux_data/', timeout=3)
-            if response and not self.serverIP:
+            if response and not self.server_ip:
                 aux_data = response.json()
-                self.serverIP = ip
+                self.server_ip = ip
                 self.infocollector.debug_info("Notice", "Connection was established with server at " + str(ip))
                 self.infocollector.available_batches = sorted(aux_data['Received batches'])
                 self.infocollector.available_ffactor = aux_data['Form factors']
                 self.infocollector.observations["Server"] = aux_data['Observations']
                 self.get_data_from_server()
-                if self.isConnEstablish:
+                if self.is_connection_established:
                     if self.infocollector.isOrdered:
                         self.infocollector.available_categories = self.infocollector.assigned_category.split('!@#$^')
                     else:
                         self.infocollector.available_categories = sorted(aux_data['Categories'])
                         self.infocollector.avail_testers = sorted(aux_data['Testers'])
-            elif response and self.serverIP:
+            elif response and self.server_ip:
                 self.infocollector.debug_info("Warning", "Communication aborted with " + str(ip) +
                                               ", because there is already established connection")
             elif not response:
@@ -90,23 +90,23 @@ class Server:
         request_dict = dict()
         request_dict["Serial"] = self.infocollector.id_Dict["Collected"]["Serial"]
         try:
-            self.infocollector.debug_info("Information", "Searching device record in " + str(self.serverIP))
+            self.infocollector.debug_info("Information", "Searching device record in " + str(self.server_ip))
             json_dump = json.dumps(request_dict)
-            response = requests.get(self.serverIP + 'if/data/', json_dump, timeout=3)
+            response = requests.get(self.server_ip + 'if/data/', json_dump, timeout=3)
             content = response.content.decode('UTF-8')
             status = response.status_code
         except Exception as e:
             response = content = status = ''
-            self.isConnectible = False
-            self.isConnEstablish = False
-            self.infocollector.debug_info("Critical", "Couldn't comm. with server at " + str(self.serverIP))
+            self.is_connectible = False
+            self.is_connection_established = False
+            self.infocollector.debug_info("Critical", "Couldn't comm. with server at " + str(self.server_ip))
             self.infocollector.debug_info("Error", e)
 
         try:
             # If computer wasn't found, but everything works
             if status == 404:
-                self.isConnectible = True
-                self.isConnEstablish = True
+                self.is_connectible = True
+                self.is_connection_established = True
                 self.infocollector.debug_info("Notice", "Record wasn't found for this device")
 
             # If computer was found, push all information to GUI
@@ -148,20 +148,20 @@ class Server:
                         self.infocollector.order_AvailStatus = ','.join(json_data["Order"]["Statuses"]).split(',')
                     self.infocollector.isOrdered = True
                     self.infocollector.debug_info("Information", "Loading Order Information")
-                self.isConnectible = True
-                self.isConnEstablish = True
+                self.is_connectible = True
+                self.is_connection_established = True
                 self.infocollector.debug_info("Notice", "Existing record info was successfully loaded to GUI")
             # If unforeseen condition happened, hail
             else:
-                self.isConnectible = True
-                self.isConnEstablish = False
+                self.is_connectible = True
+                self.is_connection_established = False
                 self.infocollector.debug_info("Critical", "Failure on the server side: " + content)
         except Exception as e:
             self.infocollector.debug_info("Critical", "Error while trying to handle status code: " + str(status))
             self.infocollector.debug_info("Error", e)
-            self.isConnectible = False
-            self.isConnEstablish = False
-        self.infocollector.debug_info("Information", "Communication done with server at " + str(self.serverIP))
+            self.is_connectible = False
+            self.is_connection_established = False
+        self.infocollector.debug_info("Information", "Communication done with server at " + str(self.server_ip))
 
     def get_recorded_observations(self, recorded_data):
         try:
@@ -192,7 +192,7 @@ class Server:
             self.infocollector.debug_info("Exception", e)
 
     def is_unsuccessful_connection(self):
-        if not self.isConnEstablish:
+        if not self.is_connection_established:
             self.infocollector.avail_testers = []
             self.infocollector.avail_Batches = []
             self.infocollector.avail_Categories = []
@@ -202,7 +202,7 @@ class Server:
         request_dict["Serial"] = self.infocollector.id_Dict["GUI"]["Serial"].get_text()
         try:
             json_dump = json.dumps(request_dict)
-            response = requests.get(self.serverIP + 'if/exists/', json_dump, timeout=3)
+            response = requests.get(self.server_ip + 'if/exists/', json_dump, timeout=3)
             if response.status_code == 200:
                 return True
             else:
@@ -213,10 +213,10 @@ class Server:
 
     def send_json(self, post_dict):
         json_data = json.dumps(post_dict)
-        response = requests.post(self.serverIP + 'if/data/', data=json_data, timeout=3)
+        response = requests.post(self.server_ip + 'if/data/', data=json_data, timeout=3)
         if response.status_code == 200:
             json_data = response.json()
-            self.computerID = json_data['Index']
+            self.computer_id = json_data['Index']
 
             self.infocollector.debug_info("Information", "Code: " + str(response.status_code))
             self.infocollector.debug_info("Information", "Reason: " + str(response.reason))
@@ -231,8 +231,8 @@ class Server:
     #       picture = self.infocollector.manage_Photos()
     #       if picture:
     #           pictureTar = {'tarFile': open(picture,'rb')}
-    #           rP = requests.post(self.serverIP + 'if/pictures/' + str(self.computerID) + '/', files=pictureTar)
+    #           rP = requests.post(self.server_ip + 'if/pictures/' + str(self.computerID) + '/', files=pictureTar)
 
     def request_print_qr(self, _printer):
-        requests.post(self.serverIP + "website/edit/" + str(self.computerID) + "/print_qr/" + _printer + "/")
-        self.infocollector.debug_info("Information", "QR Printed, Computer Index: " + str(self.computerID))
+        requests.post(self.server_ip + "website/edit/" + str(self.computer_id) + "/print_qr/" + _printer + "/")
+        self.infocollector.debug_info("Information", "QR Printed, Computer Index: " + str(self.computer_id))

@@ -1,5 +1,8 @@
-# Importing Class
+import gi
 
+gi.require_version('Gtk', '3.0')
+
+# Importing Class
 from Events import *
 from GUITemplate import *
 from InfoCollector import *
@@ -10,11 +13,11 @@ from Pages.NBSummary import *
 from Pages.NBTests import *
 
 
-# noinspection PyCallByClass,PyArgumentList
+# noinspection PyCallByClass
 class MyWindow(Gtk.Window):
     def __init__(self):
         global summary_thread, observations_thread, tests_thread, stress_thread, order_thread
-        Gtk.Window.__init__(self, default_width=800, default_height=640,
+        Gtk.Window.__init__(self=self, default_width=800, default_height=640,
                             border_width=3, window_position=1)
         self.MainBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.connect("key-press-event", events.main_event_parser)
@@ -22,7 +25,7 @@ class MyWindow(Gtk.Window):
         self.add(self.MainBox)
         infocollector.debug_info("Information", "GUI - Main Window initialized")
         # < Variable Initialization
-        self.clipboard = Gtk.Clipboard.get(selection=Gdk.SELECTION_CLIPBOARD)
+        self.clipboard = Gtk.Clipboard.get(self=self, selection=Gdk.SELECTION_CLIPBOARD)
         self.post_dict = dict()
         self.post_dict["Observations"] = {}
 
@@ -41,7 +44,7 @@ class MyWindow(Gtk.Window):
         self.PhotoBar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         self.create_photo_bar(self.PhotoBar)
         photo_bar_sb.add(self.PhotoBar)
-        infocollector.debug_info("Information", "GUI - Barebones initilizated")
+        infocollector.debug_info("Information", "GUI - Barebones initialized")
 
         if not infocollector.isSingleThread:
             infocollector.debug_info("Information", "Starting to stop all gathering threads")
@@ -57,14 +60,14 @@ class MyWindow(Gtk.Window):
                 infocollector.debug_info("Information", "Done    | Thread " + str(thread))
             infocollector.debug_info("Information", "Stopping Server Threads")
         self.set_title(
-            infocollector.appTitle + ' ' + infocollector.appVersion + ' | Server: ' + infocollector.server.serverIP)
+            infocollector.appTitle + ' ' + infocollector.appVersion + ' | Server: ' + infocollector.server.server_ip)
 
         if not infocollector.isSingleThread:
             infocollector.debug_info("Information", "GUI - Summary Page")
             summary_thread = threading.Thread(target=nbSummary.create_page)
             summary_thread.start()
             if infocollector.observations["Server"]:
-                infocollector.debug_info("Information", "GUI - Observ. Page")
+                infocollector.debug_info("Information", "GUI - Observation Page")
                 observations_thread = threading.Thread(target=nbObservations.create_page)
                 observations_thread.start()
 
@@ -104,7 +107,7 @@ class MyWindow(Gtk.Window):
         self.AppWrapper.pack_start(self.MainNoteBook, True, True, 0)
         self.AppWrapper.pack_start(photo_bar_sb, False, True, 0)
 
-        # < Pushin all Layout to MainBox
+        # < Pushing all Layout to MainBox
         self.MainBox.pack_start(self.TopContent, False, False, 0)
         self.MainBox.pack_start(self.AppWrapper, True, True, 0)
         self.MainBox.pack_start(self.BottomContent, False, False, 0)
@@ -118,6 +121,7 @@ class MyWindow(Gtk.Window):
                 order_thread.join()
 
         events.init_variables(infocollector, self, nbTests)
+        nbSummary.set_parent(self)
         GLib.timeout_add(1000, nbStress.stress_thread, 1000, self.MainNoteBook, self)
 
     def create_bottom_content(self, box):
@@ -142,7 +146,8 @@ class MyWindow(Gtk.Window):
     def create_photo_bar(self, production_box_col1):
         for no in range(0, len(infocollector.pictures)):
             picture_address = infocollector.pictures[no]
-            image = Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_size(picture_address,
+            image = Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_size(self=self,
+                                                                                     filename=picture_address,
                                                                                      width=128, height=128))
 
             image_event_box = Gtk.EventBox()
@@ -155,10 +160,10 @@ class MyWindow(Gtk.Window):
 
         if len(infocollector.pictures) == 0:
             image_add_pix_buf = GdkPixbuf.Pixbuf.new_from_file_at_size(
-                infocollector.appResourcePath + "Icons/ImageAdd.png", width=64, height=64)
+                self=self, filename=infocollector.appResourcePath + "Icons/ImageAdd.png", width=64, height=64)
         else:
             image_add_pix_buf = GdkPixbuf.Pixbuf.new_from_file_at_size(
-                infocollector.appResourcePath + "Icons/ImageAdd.png", width=128, height=128)
+                self=self, filename=infocollector.appResourcePath + "Icons/ImageAdd.png", width=128, height=128)
         image_add = Gtk.Image.new_from_pixbuf(image_add_pix_buf)
         image_add_event_box = Gtk.EventBox()
         image_add_event_box.connect('button-press-event', self.on_mouse_click_add_pic)
@@ -208,12 +213,15 @@ class MyWindow(Gtk.Window):
 
             bug_report = dict()
             bug_report["alias"] = "Report from " + str(tester)
-            bug_report["text"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M") + "\n" + \
-                                 "Bug report of " + _id_model + " | SN: " + _id_serial + "\n\n" + \
-                                 "Problem description\n" + str(problem) + "\n------------------------------"
+            bug_report["text"] = datetime.datetime.now().strftime(
+                "%Y-%m-%d %H:%M") + "\n" + "Bug report of " + _id_model + \
+                                 " | SN: " + _id_serial + "\n\n" + "Problem description\n" + str(
+                problem) + "\n-------------------------"
             bug_report["attachments"] = []
             commands = ["sensors -j", "lscpu -J", "lshw", "xrandr", "lspci -vv"]
             for output in commands:
+                # if 'psensors' in output and 'psutil' in sys.modules:
+                #     _output = psutil.sensors_temperatures()
                 _output = subprocess.check_output(output.split(' '), encoding='utf-8')
                 _report = dict()
                 _report["title"] = output.split(' ')[0].capitalize() + " Report"
@@ -342,6 +350,13 @@ class MyWindow(Gtk.Window):
             return False
         if not self.check_variable_value(infocollector.gpu_Dict["GUI"]["1 Model"], "iGPU Model cannot be empty!"):
             return False
+
+        if infocollector.isCDROMDetected:
+            for _key, _value in infocollector.drive_Dict["Collected"]['Devices'].items():
+                if 'Device' in _key:
+                    if not infocollector.drive_Dict["Collected"]['Devices'][_key]["Empty"]:
+                        guiTemplate.throw_error_win(self, "Warning", "Disk drive detected in computer, "
+                                                                     "please remove that before finishing!")
 
         if infocollector.id_Dict["GUI"]["System Type"].get_text() == "Laptop":
             if not self.check_variable_value(infocollector.screen_Dict["GUI"]["Diagonal"],
@@ -491,33 +506,33 @@ class MyWindow(Gtk.Window):
         self.post_dict["Display"]["Category"] = infocollector.screen_Dict["GUI"]["Category"].get_text()
         self.post_dict["Display"]["Cable Type"] = infocollector.screen_Dict["GUI"]["Connection Type"].get_text()
         # < Drives Information
-        for iter_ in range(1, infocollector.drive_Dict["Collected"]["No"]):
+        for iter_ in range(1, infocollector.drive_Dict["Collected"]["Drives"]["Amount"] + 1):
             if iter_ == 1:
                 self.post_dict["Drives"] = {}
             keyword = str(iter_) + " Drive"
-            serial = infocollector.drive_Dict["GUI"][keyword]["SN"].get_text()
-            vendor = infocollector.drive_Dict["GUI"][keyword]["Manufacturer"].get_text()
-            model = infocollector.drive_Dict["GUI"][keyword]["Model"].get_text()
-            interface = infocollector.drive_Dict["GUI"][keyword]["Interface"].get_text()
-            capacity = infocollector.drive_Dict["GUI"][keyword]["Capacity"].get_text()
-            health = infocollector.drive_Dict["GUI"][keyword]["Health"].get_text()
-            report = infocollector.drive_Dict["GUI"][keyword]["Description"]
-            speed = infocollector.drive_Dict["Collected"][keyword]["Speed"]
-            locked = infocollector.drive_Dict["Collected"][keyword]["Locked"]
-            size = infocollector.drive_Dict["Collected"][keyword]["Size"]
-            poweron = infocollector.drive_Dict["Collected"][keyword]["PowerOn"]
-            notes = infocollector.drive_Dict["Collected"][keyword]["Notes"]
-            family = infocollector.drive_Dict["Collected"][keyword]["Family"]
-            width = infocollector.drive_Dict["Collected"][keyword]["Width"]
-            height = infocollector.drive_Dict["Collected"][keyword]["Height"]
-            length = infocollector.drive_Dict["Collected"][keyword]["Length"]
-            weight = infocollector.drive_Dict["Collected"][keyword]["Weight"]
-            powerspin = infocollector.drive_Dict["Collected"][keyword]["Spinup"]
-            powerseek = infocollector.drive_Dict["Collected"][keyword]["Seek"]
-            poweridle = infocollector.drive_Dict["Collected"][keyword]["Idle"]
-            powerstan = infocollector.drive_Dict["Collected"][keyword]["Standby"]
-            inspection = infocollector.drive_Dict["Collected"][keyword]["Inspection"]
-            drivetype = infocollector.drive_Dict["Collected"][keyword]["Type"]
+            serial = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Serial"].get_text()
+            vendor = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Manufacturer"].get_text()
+            model = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Model"].get_text()
+            interface = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Interface"].get_text()
+            capacity = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Capacity"].get_text()
+            health = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Health"].get_text()
+            report = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Description"]
+            speed = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Speed"]
+            locked = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Locked"]
+            size = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Size"]
+            poweron = infocollector.drive_Dict["Collected"]["Drives"][keyword]["PowerOn"]
+            notes = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Notes"]
+            family = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Family"]
+            width = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Width"]
+            height = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Height"]
+            length = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Length"]
+            weight = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Weight"]
+            powerspin = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Spinup"]
+            powerseek = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Seek"]
+            poweridle = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Idle"]
+            powerstan = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Standby"]
+            inspection = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Inspection"]
+            drivetype = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Type"]
 
             if keyword not in self.post_dict["Drives"]:
                 self.post_dict["Drives"][keyword] = {}
@@ -548,10 +563,10 @@ class MyWindow(Gtk.Window):
         # < Optical Device Information
         self.post_dict["Optical Device"] = {}
         self.post_dict["Optical Device"]["State"] = nbSummary.optical_dropbox.get_active_text()
-        for iter_ in range(1, infocollector.cdrom_Dict["Collected"]["No"]):
+        for iter_ in range(1, infocollector.drive_Dict["Collected"]["Devices"]["Amount"] + 1):
             keyword = str(iter_) + " Device"
-            serial = infocollector.cdrom_Dict["GUI"][keyword]["SN"].get_text()
-            model = infocollector.cdrom_Dict["GUI"][keyword]["Model"].get_text()
+            serial = infocollector.drive_Dict["GUI"]["Devices"][keyword]["Serial"].get_text()
+            model = infocollector.drive_Dict["GUI"]["Devices"][keyword]["Model"].get_text()
 
             if keyword not in self.post_dict["Optical Device"]:
                 self.post_dict["Optical Device"][keyword] = {}

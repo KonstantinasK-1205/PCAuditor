@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../EnclosureMonitoring/.idea/EnclosureMonitoring.iml" filepath="$PROJECT_DIR$/../EnclosureMonitoring/.idea/EnclosureMonitoring.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/PCAuditor.iml" filepath="$PROJECT_DIR$/.idea/PCAuditor.iml" />
       <module fileurl="file://$PROJECT_DIR$/../PCAuditor_Admin/.idea/PCAuditor_Admin.iml" filepath="$PROJECT_DIR$/../PCAuditor_Admin/.idea/PCAuditor_Admin.iml" />
       <module fileurl="file://$PROJECT_DIR$/../.idea/Python.iml" filepath="$PROJECT_DIR$/../.idea/Python.iml" />

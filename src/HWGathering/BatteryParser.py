@@ -40,38 +40,63 @@ class BatteryParser:
             bat_dict["Current Wh"] = str(bat_dict["Current Wh"]) + " Wh"
             bat_dict["Maximum Wh"] = str(bat_dict["Maximum Wh"]) + " Wh"
             bat_dict["Factory Wh"] = str(bat_dict["Factory Wh"]) + " Wh"
-            bat_dict["Wear Level"] = str(bat_dict["Wear Level"]) + " %"
+            bat_dict["Wear Level"] = str(bat_dict["Wear Level"]) + "%"
+
+            # Loading battery backup information from uevent
+            bat_bckp = self.init_battery_uevent(path, _battery)
+            if not bat_dict["Serial"]:
+                bat_dict["Serial"] = bat_bckp["Serial"]
+            if not bat_dict["Model"]:
+                bat_dict["Model"] = bat_bckp["Model"]
+            if not bat_dict["Status"]:
+                bat_dict["Status"] = bat_bckp["Status"]
+            if not bat_dict["Manufacturer"]:
+                bat_dict["Manufacturer"] = bat_bckp["Manufacturer"]
+            if not bat_dict["Min Voltage"]:
+                bat_dict["Min Voltage"] = bat_bckp["Min Voltage"]
+            if not bat_dict["Current Use"]:
+                bat_dict["Current Use"] = bat_bckp["Current Use"]
+            if not bat_dict["Current Wh"]:
+                bat_dict["Current Wh"] = bat_bckp["Current Wh"]
+            if not bat_dict["Maximum Wh"]:
+                bat_dict["Maximum Wh"] = bat_bckp["Maximum Wh"]
+            if not bat_dict["Factory Wh"]:
+                bat_dict["Factory Wh"] = bat_bckp["Factory Wh"]
+            if not bat_dict["Wear Level"]:
+                bat_dict["Wear Level"] = bat_bckp["Wear Level"]
+            if not bat_dict["Estimated"]:
+                bat_dict["Estimated"] = bat_bckp["Estimated"]
+
             self.batteries.update({_battery: bat_dict})
 
     # TODO: Review and launch function below
     #   Function should act as backup in case
     #   power_supply/* files couldn't be readed
-    def init_battery_uevent(self, _dict, _path):
-        for _battery in range(0, _dict["Amount"]):
-            _uevent = self.read_file(_path, _battery, 'uevent')
-            for line in _uevent.splitlines():
-                if '_NAME' in line:
-                    _dict["Name"] = "BAT" + str(_battery)
-                elif '_STATUS' in line:
-                    _dict["Status"] = self.get_status(_path, _battery)
-                elif '_VOLTAGE_MIN_DESIGN' in line:
-                    _dict["Min Voltage"] = round(float(line.split('=')[1]) / 1000 / 1000, 2)
-                elif '_CURRENT_NOW' in line:
-                    _dict["Current Use"] = round(line.split('=')[1] * (_dict["Min Voltage"] / 1000 / 1000), 2)
-                elif '_CHARGE_FULL_DESIGN' in line:
-                    _dict["Factory Cap"] = round(line.split('=')[1] * (_dict["Min Voltage"] / 1000 / 1000), 2)
-                elif '_CHARGE_FULL' in line:
-                    _dict["Maximum Cap"] = round(line.split('=')[1] * (_dict["Min Voltage"] / 1000 / 1000), 2)
-                elif '_CHARGE_NOW' in line:
-                    _dict["Current Cap"] = round(line.split('=')[1] * (_dict["Min Voltage"] / 1000 / 1000), 2)
-                elif '_MODEL_NAME' in line:
-                    _dict["Model"] = line.split('=')[1]
-                elif '_MANUFACTURER' in line:
-                    _dict["Manufacturer"] = line.split('=')[1]
-                elif '_SERIAL' in line:
-                    _dict["Serial"] = line.split('=')[1]
-            _dict["Wear level"] = round(float(self.get_wearlevel(_dict["Factory Cap"], _dict["Maximum Cap"])), 2)
-            _dict["Estimated"] = self.get_estimated_time(_dict["Wear level"], _dict["Maximum Cap"])
+    def init_battery_uevent(self, _path, _battery):
+        bat_dict = {}
+        _uevent = self.read_file(_path, _battery, 'uevent')
+        for line in _uevent.splitlines():
+            if '_STATUS' in line:
+                bat_dict["Status"] = self.get_status(_path, _battery)
+            elif '_VOLTAGE_MIN_DESIGN' in line:
+                bat_dict["Min Voltage"] = round(float(line.split('=')[1]) / 1000 / 1000, 2)
+            elif '_CURRENT_NOW' in line:
+                bat_dict["Current Wh"] = round(float(line.split('=')[1]) * (bat_dict["Min Voltage"] / 1000 / 1000), 2)
+            elif '_CHARGE_FULL_DESIGN' in line:
+                bat_dict["Factory Wh"] = round(float(line.split('=')[1]) * (bat_dict["Min Voltage"] / 1000 / 1000), 2)
+            elif '_CHARGE_FULL' in line:
+                bat_dict["Maximum Wh"] = round(float(line.split('=')[1]) * (bat_dict["Min Voltage"] / 1000 / 1000), 2)
+            elif '_CHARGE_NOW' in line:
+                bat_dict["Current Wh"] = round(float(line.split('=')[1]) * (bat_dict["Min Voltage"] / 1000 / 1000), 2)
+            elif '_MODEL_NAME' in line:
+                bat_dict["Model"] = line.split('=')[1]
+            elif '_MANUFACTURER' in line:
+                bat_dict["Manufacturer"] = line.split('=')[1]
+            elif '_SERIAL' in line:
+                bat_dict["Serial"] = line.split('=')[1]
+        bat_dict["Wear Level"] = round(float(self.get_wearlevel(bat_dict["Factory Wh"], bat_dict["Maximum Wh"])), 2)
+        bat_dict["Estimated"] = self.get_estimated_time(bat_dict["Wear Level"], bat_dict["Maximum Wh"])
+        return bat_dict
 
     @classmethod
     def get_serial(cls, _path, _battery):
@@ -158,7 +183,7 @@ class BatteryParser:
         elif _wearlevel > 90:
             estimated = "Does not hold charge."
         else:
-            estimated = "Cannot determine expected time."
+            estimated = "Cannot determinate expected time."
         return estimated
 
     @staticmethod
@@ -167,7 +192,9 @@ class BatteryParser:
         if os.path.exists(file_location):
             with open(file_location, 'r') as tmp:
                 try:
-                    content = tmp.read().rstrip()
+                    content = tmp.read()
+                    if content:
+                        content = content.rstrip()
                 except OSError:
                     content = ''
                 return content

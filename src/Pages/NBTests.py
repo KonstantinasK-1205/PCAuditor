@@ -67,7 +67,7 @@ class NBTests:
             self.kbd_brightness = None
             self.kbd_range_ended = False
 
-        self.infocollector.debug_info("Information", "Tests NB - Variables Initilizated")
+        self.infocollector.debug_info("Information", "Tests NB - Variables Initialized")
 
     def create_page(self):
         self.page_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)

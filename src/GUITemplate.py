@@ -83,8 +83,9 @@ class GUITemplate:
 
     @staticmethod
     def create_spin_button(_init_value=1.0, _min_value=1.0, _max_value=1.0, _increment=1.0, _function=''):
-        adjustment = Gtk.Adjustment.new(_init_value, _min_value, _max_value, _increment, page_increment=10, page_size=0)
-        spin_button = Gtk.SpinButton.new(adjustment, _increment, digits=0)
+        adjustment = Gtk.Adjustment.new(value=_init_value, lower=_min_value, upper=_max_value,
+                                        step_increment=_increment, page_increment=10, page_size=0)
+        spin_button = Gtk.SpinButton.new(adjustment, climb_rate=_increment, digits=0)
         if _function:
             spin_button.connect('value-changed', _function)
         return spin_button
@@ -143,11 +144,15 @@ class GUITemplate:
             return group_box, _label, combobox
 
     @staticmethod
-    def create_label_button_box(_main_box, _category_string, _category_button):
+    def create_label_button_box(_main_box, _category_string, _category_button, _tooltip=None):
         temp_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0, homogeneous=True)
         category = Gtk.Label.new(_category_string)
         temp_box.pack_start(category, False, False, 0)
         temp_box.pack_start(_category_button, False, False, 0)
+
+        if _tooltip:
+            _category_button.set_tooltip_text(_tooltip)
+
         _main_box.pack_start(temp_box, False, False, 0)
 
     @staticmethod
