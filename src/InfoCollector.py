@@ -178,7 +178,7 @@ class InfoCollector:
     def __init__(self):
         # Main Variables and CLI Option Parser      
         self.appTitle = "PC Auditor"
-        self.appVersion = "v.5.3"
+        self.appVersion = "v.5.3.2"
 
         self.debug_categories = dict()
         self.isSingleThread = True  # Do we want to run application on single thread only?
