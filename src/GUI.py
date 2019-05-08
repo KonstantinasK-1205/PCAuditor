@@ -25,7 +25,7 @@ class MyWindow(Gtk.Window):
         self.add(self.MainBox)
         infocollector.debug_info("Information", "GUI - Main Window initialized")
         # < Variable Initialization
-        self.clipboard = Gtk.Clipboard.get(self=self, selection=Gdk.SELECTION_CLIPBOARD)
+        self.clipboard = Gtk.Clipboard.get(selection=Gdk.SELECTION_CLIPBOARD)
         self.post_dict = dict()
         self.post_dict["Observations"] = {}
 
@@ -146,8 +146,7 @@ class MyWindow(Gtk.Window):
     def create_photo_bar(self, production_box_col1):
         for no in range(0, len(infocollector.pictures)):
             picture_address = infocollector.pictures[no]
-            image = Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_size(self=self,
-                                                                                     filename=picture_address,
+            image = Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_size(filename=picture_address,
                                                                                      width=128, height=128))
 
             image_event_box = Gtk.EventBox()
@@ -160,10 +159,10 @@ class MyWindow(Gtk.Window):
 
         if len(infocollector.pictures) == 0:
             image_add_pix_buf = GdkPixbuf.Pixbuf.new_from_file_at_size(
-                self=self, filename=infocollector.appResourcePath + "Icons/ImageAdd.png", width=64, height=64)
+                filename=infocollector.appResourcePath + "Icons/ImageAdd.png", width=64, height=64)
         else:
             image_add_pix_buf = GdkPixbuf.Pixbuf.new_from_file_at_size(
-                self=self, filename=infocollector.appResourcePath + "Icons/ImageAdd.png", width=128, height=128)
+                filename=infocollector.appResourcePath + "Icons/ImageAdd.png", width=128, height=128)
         image_add = Gtk.Image.new_from_pixbuf(image_add_pix_buf)
         image_add_event_box = Gtk.EventBox()
         image_add_event_box.connect('button-press-event', self.on_mouse_click_add_pic)
@@ -517,22 +516,23 @@ class MyWindow(Gtk.Window):
             capacity = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Capacity"].get_text()
             health = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Health"].get_text()
             report = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Description"]
-            speed = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Speed"]
+            rotation_speed = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Rotation Speed"]
             locked = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Locked"]
-            size = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Size"]
-            poweron = infocollector.drive_Dict["Collected"]["Drives"][keyword]["PowerOn"]
+            ffactor = infocollector.drive_Dict["Collected"]["Drives"][keyword]["FFactor"]
+            disk_type = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Disk Type"]
+            poweron = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Power On"]
             notes = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Notes"]
             family = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Family"]
             width = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Width"]
             height = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Height"]
             length = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Length"]
             weight = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Weight"]
-            powerspin = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Spinup"]
-            powerseek = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Seek"]
-            poweridle = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Idle"]
-            powerstan = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Standby"]
-            inspection = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Inspection"]
-            drivetype = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Type"]
+            powerspin = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Power Spin"]
+            powerseek = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Power Seek"]
+            poweridle = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Power Idle"]
+            powerstan = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Power Standby"]
+            # inspection = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Inspection Date"]
+            total_write = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Total Writes"]
 
             if keyword not in self.post_dict["Drives"]:
                 self.post_dict["Drives"][keyword] = {}
@@ -544,9 +544,10 @@ class MyWindow(Gtk.Window):
             self.post_dict["Drives"][keyword]["Capacity"] = capacity
             self.post_dict["Drives"][keyword]["Health"] = health
             self.post_dict["Drives"][keyword]["Description"] = report
-            self.post_dict["Drives"][keyword]["Speed"] = speed
+            self.post_dict["Drives"][keyword]["Rotation Speed"] = rotation_speed
+            self.post_dict["Drives"][keyword]["Disk Type"] = disk_type
             self.post_dict["Drives"][keyword]["Locked"] = locked
-            self.post_dict["Drives"][keyword]["Size"] = size
+            self.post_dict["Drives"][keyword]["FFactor"] = ffactor
             self.post_dict["Drives"][keyword]["Power On"] = poweron
             self.post_dict["Drives"][keyword]["Notes"] = notes
             self.post_dict["Drives"][keyword]["Family"] = family
@@ -558,8 +559,8 @@ class MyWindow(Gtk.Window):
             self.post_dict["Drives"][keyword]["Power Seek"] = powerseek
             self.post_dict["Drives"][keyword]["Power Idle"] = poweridle
             self.post_dict["Drives"][keyword]["Power Standby"] = powerstan
-            self.post_dict["Drives"][keyword]["Inspection Date"] = inspection
-            self.post_dict["Drives"][keyword]["Type"] = drivetype
+            # self.post_dict["Drives"][keyword]["Inspection Date"] = inspection
+            self.post_dict["Drives"][keyword]["Total Writes"] = total_write
         # < Optical Device Information
         self.post_dict["Optical Device"] = {}
         self.post_dict["Optical Device"]["State"] = nbSummary.optical_dropbox.get_active_text()

@@ -100,7 +100,7 @@ class DiskChecker:
             info = dict()
             if 'sd' in block or 'mmcblk' in block or 'nvme' in block:
                 self.drive_no += 1
-                keyword = str(self.drive_no) + ' Device'
+                keyword = str(self.drive_no) + ' Drive'
                 info[keyword] = {}
                 info[keyword]["Serial"] = serial
                 info[keyword]["Block"] = block
@@ -154,6 +154,8 @@ class DiskChecker:
         _info["Model"] = self.grab_information(_sentinel, "Hard Disk Model ID.*: (.*)")
         if 'mSATA' in _info["Model"]:
             _info["Model"] = _info["Model"].replace("mSATA ", '')
+            _info["Disk Type"] = "mSATA"
+            _info["Rotation Speed"] = "None"
         if 'SSD' in _info["Model"]:
             _info["Model"] = _info["Model"].replace("SSD ", '')
         if 'HGST' in _info["Model"]:
@@ -182,7 +184,7 @@ class DiskChecker:
             _info["Capacity"] = 'Unknown'
 
         #
-        _info["Lock"] = self.grab_information(_sentinel, "Security Locked.* (.*)", 'Unknown')
+        _info["Locked"] = self.grab_information(_sentinel, "Security Locked.* (.*)", 'Unknown')
 
         #
         rpm = self.grab_information(_sentinel, "Nominal Media Rotation Rate.*: (.*)")
@@ -193,17 +195,25 @@ class DiskChecker:
 
         if rpm:
             if 'ssd' in rpm.lower() or 'solid' in rpm.lower():
-                _info["Disk Type"] = "SSD"
-                _info["Rotation Speed"] = "None"
+                if not _info.get("Disk Type", ''):
+                    _info["Disk Type"] = "SSD"
+                if not _info.get("Rotation Speed", ''):
+                    _info["Rotation Speed"] = "None"
             elif 'rpm' in rpm.lower():
-                _info["Disk Type"] = "HDD"
-                _info["Rotation Speed"] = rpm.replace(" RPM", '')
+                if not _info.get("Disk Type", ''):
+                    _info["Disk Type"] = "HDD"
+                if not _info.get("Rotation Speed", ''):
+                    _info["Rotation Speed"] = rpm.replace(" RPM", '')
             else:
-                _info["Disk Type"] = "Unknown"
-                _info["Rotation Speed"] = "Unknown"
+                if not _info.get("Disk Type", ''):
+                    _info["Disk Type"] = "Unknown"
+                if not _info.get("Rotation Speed", ''):
+                    _info["Rotation Speed"] = "Unknown"
         else:
-            _info["Disk Type"] = "Unknown"
-            _info["Rotation Speed"] = "Unknown"
+            if not _info.get("Disk Type", ''):
+                _info["Disk Type"] = "Unknown"
+            if not _info.get("Rotation Speed", ''):
+                _info["Rotation Speed"] = "Unknown"
 
         #
         _info["FFactor"] = self.grab_information(_sentinel, "Form Factor.*: (.* (?=inch))")
@@ -216,7 +226,7 @@ class DiskChecker:
 
         #
         _info["Health"] = self.grab_information(_sentinel, "Health.* ([0-9]{1,} %)").replace(' ', '')
-        _info["Power on"] = self.grab_information(_sentinel, "Power On Time.*: (.*)", '1').split(' ')[0]
+        _info["Power On"] = self.grab_information(_sentinel, "Power On Time.*: (.*)", '1').split(' ')[0]
 
         #
         interface = self.grab_information(_sentinel, "Disk Interface.*: (.*)")
@@ -232,13 +242,13 @@ class DiskChecker:
         # Disk Drive Dimensions
         _info["Width"] = self.grab_information(_sentinel, "Width.*: (.*) mm")
         _info["Height"] = self.grab_information(_sentinel, "Height.*: (.*) mm")
-        _info["Depth"] = self.grab_information(_sentinel, "Depth.*: (.*) mm")
+        _info["Length"] = self.grab_information(_sentinel, "Depth.*: (.*) mm")
         _info["Weight"] = self.grab_information(_sentinel, "Weight.*: (.*) grams")
         # Disk Drive Consumption
-        _info["Spin up"] = self.grab_information(_sentinel, r"Required Power For Spinup.*: (.*)")
-        _info["Power seek"] = self.grab_information(_sentinel, r"Power Required \(seek\).*: (.*)")
-        _info["Power idle"] = self.grab_information(_sentinel, r"Power Required \(idle\).*: (.*)")
-        _info["Power stby"] = self.grab_information(_sentinel, r"Power Required \(standby\).*: (.*)")
+        _info["Power Spin"] = self.grab_information(_sentinel, r"Required Power For Spinup.*: (.*)")
+        _info["Power Seek"] = self.grab_information(_sentinel, r"Power Required \(seek\).*: (.*)")
+        _info["Power Idle"] = self.grab_information(_sentinel, r"Power Required \(idle\).*: (.*)")
+        _info["Power Standby"] = self.grab_information(_sentinel, r"Power Required \(standby\).*: (.*)")
         # Drive S.M.A.R.T.
         _info["Description"] = self.grab_information(_sentinel, r"Performance.*[\s](^$[\s\S]+?^$)", '', 'Multiline')
         _info["Total Writes"] = self.grab_information(_sentinel, "Lifetime Writes.*: (.*)", "N/A")

@@ -374,7 +374,7 @@ class NBSummary:
             if iter_ > 1:
                 tpl.create_label('', box)
 
-            keyword = str(iter_) + " Device"
+            keyword = str(iter_) + " Drive"
             if keyword not in drive_gui:
                 drive_gui[keyword] = {}
 
@@ -382,6 +382,7 @@ class NBSummary:
             drive_gui[keyword]["Manufacturer"] = tpl.create_entry(drive_col[keyword]["Manufacturer"])
             drive_gui[keyword]["Model"] = tpl.create_entry(drive_col[keyword]["Model"])
             drive_gui[keyword]["Interface"] = tpl.create_entry(drive_col[keyword]["Interface"])
+            drive_gui[keyword]["Disk Type"] = tpl.create_entry(drive_col[keyword]["Disk Type"])
             drive_gui[keyword]["Capacity"] = tpl.create_entry(drive_col[keyword]["Capacity"])
             drive_gui[keyword]["Health"] = tpl.create_entry(drive_col[keyword]["Health"])
             drive_gui[keyword]["Description"] = drive_col[keyword]["Description"]
@@ -392,6 +393,7 @@ class NBSummary:
             tpl.create_label_entry_box("Vendor", drive_gui[keyword]["Manufacturer"], box)
             tpl.create_label_entry_box("Model", drive_gui[keyword]["Model"], box)
             tpl.create_label_entry_box("Interface", drive_gui[keyword]["Interface"], box)
+            tpl.create_label_entry_box("Disk Type", drive_gui[keyword]["Disk Type"], box)
             tpl.create_label_entry_box("Capacity", drive_gui[keyword]["Capacity"], box)
             tpl.create_label_entry_box("Health", drive_gui[keyword]["Health"], box, drive_gui[keyword]["Description"])
             tpl.create_label_button_box(box, "", drive_gui[keyword]["Format"], "This action will format the drive,\nit "
