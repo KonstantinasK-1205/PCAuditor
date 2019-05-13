@@ -2,7 +2,7 @@ import gi
 
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk
-
+import subprocess
 
 class Events:
     def __init__(self):
@@ -365,3 +365,11 @@ class Events:
                     Button.modify_bg(Gtk.StateType.NORMAL, color)
                     break
         return True
+
+    @staticmethod
+    def volume_changed(_event, _widget, _data, _bar):
+        if _data <= 0:
+            _bar.set_value(0)
+        elif _data >= 100:
+            _bar.set_value(100)
+        subprocess.Popen(['amixer', 'set', 'Master', str(_data) + '%'], stdout=subprocess.DEVNULL)

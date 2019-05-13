@@ -5,10 +5,10 @@ import subprocess
 class DiskChecker:
     def __init__(self):
         self.lsblk_output = eval(self.get_init_info())
-        self.is_cdrom_present = False
         self.drives = dict()
         self.drives['Drives'] = dict()
         self.drives['Devices'] = dict()
+        self.is_cdrom_present = False
 
         self.drive_no = 0
         self.cdrom_no = 0
@@ -254,7 +254,7 @@ class DiskChecker:
         _info["Total Writes"] = self.grab_information(_sentinel, "Lifetime Writes.*: (.*)", "N/A")
         _info["Notes"] = ''  # WIP
 
-    # Master information - Loads all blocks
+    # Quickly cleans partition table of disk drive
     @staticmethod
     def clean_disk(_block):
         try:

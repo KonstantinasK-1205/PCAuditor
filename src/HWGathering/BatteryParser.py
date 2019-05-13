@@ -155,8 +155,10 @@ class BatteryParser:
             estimated = "Approx. 1 h."
         elif _wearlevel < 60:
             estimated = "Approx. 40 min."
-        elif _wearlevel <= 90:
+        elif _wearlevel < 80:
             estimated = "Approx. 30 min."
+        elif _wearlevel <= 90:
+            estimated = "Approx. 15 min."
         elif _wearlevel > 90:
             estimated = "Does not hold charge."
         else:

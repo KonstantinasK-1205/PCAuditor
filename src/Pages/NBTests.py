@@ -178,10 +178,14 @@ class NBTests:
         sub_box.pack_start(self.MicrophoneButton, True, True, 0)
         sub_box.pack_start(right_speaker_button, True, True, 0)
 
+        volume_bar = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL, min=0, max=100, step=1)
+        volume_bar.set_value(self.infocollector.get_init_volume())
+        volume_bar.connect('change-value', self.events.volume_changed, volume_bar)
         self.MicLevelBar = Gtk.LevelBar(min_value=0.0, max_value=10.0, mode=Gtk.LevelBarMode.DISCRETE)
 
         audio_layout.pack_start(full_speaker_button, False, False, 0)
         audio_layout.pack_start(sub_box, False, False, 0)
+        audio_layout.pack_start(volume_bar, False, False, 0)
         audio_layout.pack_start(self.MicLevelBar, True, True, 0)
         self.audio_box.pack_start(audio_layout, True, True, 0)
         self.infocollector.debug_info("Information", "Test Page - Audio")
@@ -210,17 +214,12 @@ class NBTests:
 
     def speaker_test(self, target_speaker, _data=None, _ev=''):
         self.isSpeakerTestActive = True
-        command = ["/root/.Scripts/PXECraft.sh", "--audio-test", "--" + target_speaker]
+        command = ["pxecraft", "--audio-test", "--" + target_speaker]
         try:
             subprocess.Popen(command)
-        except FileNotFoundError:
-            try:
-                command[0] = command[0].replace("/root/.Scripts/",
-                                                "/home/konstantin/Documents/Programming/Sopena Scripts/")
-                subprocess.Popen(command)
-            except Exception as e:
-                self.infocollector.debug_info("Error", "Speaker Test - Problems With " + target_speaker + " Speaker")
-                self.infocollector.debug_info("Error", e)
+        except Exception as e:
+            self.infocollector.debug_info("Error", "Speaker Test - Problems With " + target_speaker + " Speaker")
+            self.infocollector.debug_info("Error", e)
         self.infocollector.debug_info("Information", "Speaker Test was launched on " + str(target_speaker))
         self.isSpeakerTestActive = False
         return False

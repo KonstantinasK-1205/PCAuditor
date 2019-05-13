@@ -500,25 +500,13 @@ class InfoCollector:
     def get_information_output(self, category, filename, retry_amount):
         current_try = ''
         command = ['']
-        if "Battery" in category:
-            command = ['/root/.Scripts/BatteryCheck.sh', '-m', 'info', '-t', '0']
-            current_try = self.currentBatTry = self.currentBatTry + 1
-        elif "GPU" in category:
-            command = ['/root/.Scripts/PXECraft.sh', '--get-gpu']
+        if "GPU" in category:
+            command = ['pxecraft', '--get-gpu']
             current_try = self.currentGPUTry = self.currentGPUTry + 1
-        elif "Drive" in category:
-            command = ['/root/.Scripts/GetDrivesInfo.sh']
-            current_try = self.currentDriveTry = self.currentDriveTry + 1
         self.debug_info("Information", category + " Information - Trying to extract information about " + str(
             category) + " | " + str(current_try) + " / " + str(retry_amount))
 
-        try:
-            subprocess.Popen(command).wait()
-        except subprocess.CalledProcessError:
-            command[0] = command[0].replace("/root/.Scripts/",
-                                            "/home/konstantin/Documents/Programming/Scripts/Sopena Group/")
-            self.debug_info("Warning", category + " Information - Couldn't get information, trying to change directory")
-            subprocess.Popen(command).wait()
+        subprocess.Popen(command).wait()
 
         if current_try < retry_amount:
             tmp = self.load_information_output(category, filename, retry_amount)
@@ -908,22 +896,18 @@ class InfoCollector:
 
     def get_camera(self, *_args):
         self.debug_info("Information", "Camera Information - Initialization")
-        software = ["/root/.Software/luvcview", "/home/konstantin/Programs/luvcview"]
+        self.isCameraDetected = False
         argument = "-f yuv -s " + str(self.screen_Dict['Collected']["Resolution"])
         try:
             master_string = self.get_regex_info(r'uvcvideo', self.lshw_Output, 'search', 0)
             if master_string:
                 self.debug_info("Information", "\tCamera was detected, searching for luvcview!")
-                for path in software:
-                    self.isCameraDetected = False
-                    if os.path.isfile(path):
-                        # self.debug_info("Error", "\tCouldn't launch luvcview!")
-                        subprocess.Popen([str(path) + " " + argument], shell=True, stdout=subprocess.DEVNULL)
-                        self.debug_info("Information", "Camera was found, and software was launched")
-                        self.isCameraDetected = True
+                # subprocess.Popen(["luvcview " + argument], shell=True, stdout=subprocess.DEVNULL)
+                self.isCameraDetected = True
+                self.debug_info("Information", "Camera was found, and software was launched")
         except Exception as e:
-            self.debug_info("Exception", "\tCouldn't get Camera\n " + str(e))
             self.isCameraDetected = False
+            self.debug_info("Exception", "\tCouldn't get Camera\n " + str(e))
 
     def get_core_clock(self):
         output = subprocess.check_output(['sed', '-n', 's/cpu MHz\t\t: //p', '/proc/cpuinfo']).decode('utf-8')
@@ -940,7 +924,6 @@ class InfoCollector:
                 else:
                     break
 
-    #    @staticmethod
     @staticmethod
     def get_sensors_output():
         output = subprocess.run(["sensors", "-j"], stdout=subprocess.PIPE,
@@ -1089,7 +1072,7 @@ class InfoCollector:
     def manage_photos(_device_sn, _device_model, _picture_list):
         if len(_picture_list) > 0:
             tar_path = subprocess.check_output(
-                ['/root/.Scripts/PXECraft.sh', '--photo-list', _device_sn, _device_model, str(_picture_list)]).decode(
+                ['pxecraft', '--photo-list', _device_sn, _device_model, str(_picture_list)]).decode(
                 'UTF-8').replace('\n', '')
         else:
             tar_path = ''
@@ -1151,6 +1134,14 @@ class InfoCollector:
             string = re.sub(r' +', ' ', string)
             string = re.sub(r' +$', '', string.strip())
         return string
+
+    @staticmethod
+    def get_init_volume():
+        amixer = subprocess.check_output(['amixer', 'sget', 'Master']).decode('utf-8', errors='ignore')
+        current_volume = re.search(r'\[([0-9]{1,3})%\]', amixer)
+        if current_volume:
+            current_volume = int(current_volume.group(1))
+        return current_volume
 
 
 battery_class = BatteryParser()
