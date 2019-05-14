@@ -222,18 +222,18 @@ class InfoCollector:
         self.observations["Selected"] = dict()
 
         self.assigned_batch = ""
-        self.available_batches = ""
+        self.available_batches = []
 
         self.assigned_category = ""
-        self.available_categories = ""
+        self.available_categories = []
 
         self.assigned_ffactor = ""
-        self.available_ffactor = ""
+        self.available_ffactor = []
 
         self.boxNumber = ""
 
         self.previousTester = ""
-        self.avail_testers = ""
+        self.avail_testers = []
 
         self.isSold = ""
         self.deviceLicense = ""
@@ -244,7 +244,7 @@ class InfoCollector:
         self.order_Client = ""
         self.order_Name = ""
         self.order_Status = ""
-        self.order_AvailStatus = ""
+        self.order_AvailStatus = []
         self.isOrdered = False
 
         self.appResourcePath = self.find_resource_folder()
@@ -897,7 +897,7 @@ class InfoCollector:
     def get_camera(self, *_args):
         self.debug_info("Information", "Camera Information - Initialization")
         self.isCameraDetected = False
-        argument = "-f yuv -s " + str(self.screen_Dict['Collected']["Resolution"])
+        # argument = "-f yuv -s " + str(self.screen_Dict['Collected']["Resolution"])
         try:
             master_string = self.get_regex_info(r'uvcvideo', self.lshw_Output, 'search', 0)
             if master_string:
@@ -1137,7 +1137,7 @@ class InfoCollector:
 
     @staticmethod
     def get_init_volume():
-        amixer = subprocess.check_output(['amixer', 'sget', 'Master']).decode('utf-8', errors='ignore')
+        amixer = subprocess.check_output(['amixer', '-D', 'pulse', 'sget', 'Master']).decode('utf-8', errors='ignore')
         current_volume = re.search(r'\[([0-9]{1,3})%\]', amixer)
         if current_volume:
             current_volume = int(current_volume.group(1))

@@ -5,8 +5,8 @@ import requests
 
 
 class Server:
-    def __init__(self, infocollector, ip_list):
-        self.infocollector = infocollector
+    def __init__(self, _infocollector, _ip_list):
+        self.infocollector = _infocollector
         self.is_connectible = False
         self.is_connection_established = False
         self.computer_id = None
@@ -14,47 +14,48 @@ class Server:
         self.server_threads = []
         self.server_ip = ""
         self.infocollector.debug_info("Information", "Server Variables Initialized")
-        if not ip_list:
-            ip_list = ['http://192.168.0.1:8000/',
-                       'http://192.168.8.254:8000/',
-                       'http://192.168.8.9:8000/']
-        self.create_threads(ip_list)
 
-    def create_threads(self, ip_list):
-        self.infocollector.debug_info("Information", "Threads will be created for " + str(ip_list))
+        if not _ip_list:
+            _ip_list = ['http://192.168.0.1:8000/',
+                        'http://192.168.8.254:8000/',
+                        'http://192.168.8.9:8000/']
+        self.create_threads(_ip_list)
+
+    def create_threads(self, _ip_list):
+        self.infocollector.debug_info("Information", "Threads will be created for " + str(_ip_list))
         if not self.infocollector.isSingleThread:
-            for ip in ip_list:
+            for _ip in _ip_list:
                 try:
                     if not self.server_ip:
-                        thread = threading.Thread(name=ip, target=self.find_server, args=(ip, ip_list,))
+                        thread = threading.Thread(name=_ip, target=self.find_server, args=(_ip, _ip_list,))
                         thread.start()
                         self.server_threads.append(thread)
                     else:
-                        self.infocollector.debug_info("Information",
-                                                      "Skipping" + str(ip) + ", because Server IP already defined")
+                        self.infocollector.debug_info("Notice",
+                                                      "Skipping" + str(_ip) + ", because Server IP already defined")
                         break
                 except Exception as e:
                     self.infocollector.debug_info("Exception", e)
         else:
-            for ip in ip_list:
+            for _ip in _ip_list:
                 try:
                     if not self.server_ip:
-                        self.find_server(ip)
+                        self.find_server(_ip)
                     else:
-                        self.infocollector.debug_info("Information",
-                                                      "Skipping " + str(ip) + ", because Server IP already defined")
+                        self.infocollector.debug_info("Notice",
+                                                      "Skipping " + str(_ip) + ", because Server IP already defined")
                         break
                 except Exception as e:
                     self.infocollector.debug_info("Exception", e)
 
-    def find_server(self, ip):
-        self.infocollector.debug_info("Information", "Establishing communication with server at " + str(ip))
+    def find_server(self, _ip):
+        self.infocollector.debug_info("Information", "Establishing communication with server at " + str(_ip))
         try:
-            response = requests.get(ip + 'if/aux_data/', timeout=3)
+            response = requests.get(_ip + 'if/aux_data/', timeout=3)
             if response and not self.server_ip:
                 aux_data = response.json()
-                self.server_ip = ip
-                self.infocollector.debug_info("Notice", "Connection was established with server at " + str(ip))
+                self.server_ip = _ip
+                self.infocollector.debug_info("Notice", "Connection was established with server at " + str(_ip))
                 self.infocollector.available_batches = sorted(aux_data['Received batches'])
                 self.infocollector.available_ffactor = aux_data['Form factors']
                 self.infocollector.observations["Server"] = aux_data['Observations']
@@ -66,12 +67,12 @@ class Server:
                         self.infocollector.available_categories = sorted(aux_data['Categories'])
                         self.infocollector.avail_testers = sorted(aux_data['Testers'])
             elif response and self.server_ip:
-                self.infocollector.debug_info("Warning", "Communication aborted with " + str(ip) +
+                self.infocollector.debug_info("Warning", "Communication aborted with " + str(_ip) +
                                               ", because there is already established connection")
             elif not response:
-                self.infocollector.debug_info("Warning", "Failed to communicate with server at " + str(ip))
+                self.infocollector.debug_info("Warning", "Failed to communicate with server at " + str(_ip))
             else:
-                self.infocollector.debug_info("Error", "Communicating with " + str(ip) +
+                self.infocollector.debug_info("Error", "Communicating with " + str(_ip) +
                                               " was unsuccessfully, reasons unknown")
         except AttributeError as e:
             self.infocollector.debug_info("Critical", "Communication unsuccessful, because of Attribute Error")
@@ -80,7 +81,7 @@ class Server:
             self.infocollector.debug_info("Critical", "Communication unsuccessful, because of Connection error")
             self.infocollector.debug_info("Error", e)
         except Exception as e:
-            self.infocollector.debug_info("Warning", "Server at " + str(ip) + " hasn't answered")
+            self.infocollector.debug_info("Warning", "Server at " + str(_ip) + " hasn't answered")
             self.infocollector.debug_info("Error", e)
         self.is_unsuccessful_connection()
 
@@ -92,11 +93,11 @@ class Server:
         try:
             self.infocollector.debug_info("Information", "Searching device record in " + str(self.server_ip))
             json_dump = json.dumps(request_dict)
-            response = requests.get(self.server_ip + 'if/data/', json_dump, timeout=3)
-            content = response.content.decode('UTF-8')
-            status = response.status_code
+            resp = requests.get(self.server_ip + 'if/data/', json_dump, timeout=3)
+            content = resp.content.decode('UTF-8')
+            status = resp.status_code
         except Exception as e:
-            response = content = status = ''
+            resp = content = status = ''
             self.is_connectible = False
             self.is_connection_established = False
             self.infocollector.debug_info("Critical", "Couldn't comm. with server at " + str(self.server_ip))
@@ -109,45 +110,34 @@ class Server:
                 self.is_connection_established = True
                 self.infocollector.debug_info("Notice", "Record wasn't found for this device")
 
-            # If computer was found, push all information to GUI
+            # If computer was found, push all available information to GUI
             elif status == 200:
-                json_data = response.json()
+                json_data = resp.json()
                 self.infocollector.debug_info("Notice", "Record has been found, trying to fill data to GUI")
                 if 'Observations' in json_data:
                     self.get_recorded_observations(json_data)
                 if 'System Info' in json_data:
-                    if 'Form factor' in json_data["System Info"]:
-                        self.infocollector.assigned_form_factor = json_data["System Info"]["Form factor"]
+                    self.infocollector.assigned_form_factor = json_data["System Info"].get("Form factor", '')
                 if 'Others' in json_data:
-                    if 'Box number' in json_data["Others"]:
-                        self.infocollector.boxNumber = json_data["Others"]["Box number"]
-                    if 'License' in json_data["Others"]:
-                        self.infocollector.deviceLicense = json_data["Others"]["License"]
-                    if 'Previous tester' in json_data["Others"]:
-                        self.infocollector.previousTester = json_data["Others"]["Previous tester"]
-                    if 'Category' in json_data["Others"]:
-                        self.infocollector.assigned_category = json_data["Others"]["Category"]
-                    if 'Other' in json_data["Others"]:
-                        self.infocollector.obsAddNotes = json_data["Others"]["Other"]
-                    if 'isSold' in json_data["Others"]:
-                        self.infocollector.isSold = json_data["Others"]["isSold"]
+                    self.infocollector.isSold = json_data["Others"].get("isSold", '')
+                    self.infocollector.boxNumber = json_data["Others"].get("Box number", '')
+                    self.infocollector.obsAddNotes = json_data["Others"].get("Other", '')
+                    self.infocollector.deviceLicense = json_data["Others"].get("License", '')
+                    self.infocollector.previousTester = json_data["Others"].get("Previous tester", '')
+                    self.infocollector.assigned_category = json_data["Others"].get("Category", '')
                     if 'Received batch' in json_data["Others"]:
-                        self.infocollector.avail_Batches = []
-                        self.infocollector.assigned_batch = json_data['Others']['Received batch'].split('!@#$%^&*()')
-                    self.infocollector.debug_info("Information", "Loading Other Information")
+                        self.infocollector.available_batches.clear()
+                        self.infocollector.assigned_batch = json_data['Others'].get('Received batch', '').split(
+                            '!@#$%^&*()')
+                    self.infocollector.debug_info("Information", "Other Information loaded")
                 if 'Order' in json_data:
-                    if 'Client' in json_data["Order"]:
-                        self.infocollector.order_Client = json_data["Order"]["Client"]
-                    if 'Order name' in json_data["Order"]:
-                        self.infocollector.order_Name = json_data["Order"]["Order name"]
-                    if 'Testers' in json_data["Order"]:
-                        self.infocollector.avail_testers = json_data["Order"]["Testers"]
-                    if 'Current status' in json_data["Order"]:
-                        self.infocollector.order_Status = json_data["Order"]["Current status"]
-                    if 'Statuses' in json_data["Order"]:
-                        self.infocollector.order_AvailStatus = ','.join(json_data["Order"]["Statuses"]).split(',')
+                    self.infocollector.order_Name = json_data["Order"].get("Order name", '')
+                    self.infocollector.order_Client = json_data["Order"].get("Client", '')
+                    self.infocollector.order_Status = json_data["Order"].get("Current status", '')
+                    self.infocollector.avail_testers = json_data["Order"].get("Testers", '')
+                    self.infocollector.order_AvailStatus = ','.join(json_data["Order"].get("Statuses", '')).split(',')
                     self.infocollector.isOrdered = True
-                    self.infocollector.debug_info("Information", "Loading Order Information")
+                    self.infocollector.debug_info("Information", "Order Information loaded")
                 self.is_connectible = True
                 self.is_connection_established = True
                 self.infocollector.debug_info("Notice", "Existing record info was successfully loaded to GUI")
@@ -163,29 +153,29 @@ class Server:
             self.is_connection_established = False
         self.infocollector.debug_info("Information", "Communication done with server at " + str(self.server_ip))
 
-    def get_recorded_observations(self, recorded_data):
+    def get_recorded_observations(self, _recorded_data):
         try:
             recorded_obs = self.infocollector.observations["Recorded"]
-            for _category_key, _category_val in recorded_data["Observations"].items():
-                # If Category doesn't exist, create it
-                if _category_key not in recorded_obs:
-                    recorded_obs[_category_key] = {}
+            for _category_key, _category_val in _recorded_data["Observations"].items():
+                # Create category key in recorded (loaded) observations
+                recorded_obs.setdefault(_category_key, {})
 
                 for _code_key, _code_val in _category_val.items():
                     # Now lets find in which type each code goes
-                    if _code_val[3].lower() == "a":
+                    _char = _code_val[3].lower()
+                    if _char == "a":
                         code_type = 'Appearance'
-                    elif _code_val[3].lower() == "f":
+                    elif _char == "f":
                         code_type = 'Function'
-                    elif _code_val[3].lower() == "m":
+                    elif _char == "m":
                         code_type = 'Missing'
                     else:
                         continue
 
                     # If SubCategory(type) doesn't exist, create it
-                    if code_type not in recorded_obs[_category_key]:
-                        recorded_obs[_category_key][code_type] = {}
-                    # And finally push code {key} and {val} to dict
+                    recorded_obs[_category_key].setdefault(code_type, {})
+
+                    # Push code {key} and {val} to dict
                     recorded_obs[_category_key][code_type].update({_code_key: _code_val})
         except Exception as e:
             self.infocollector.debug_info("Critical", "Recorded observation couldn't be loaded")
@@ -193,17 +183,17 @@ class Server:
 
     def is_unsuccessful_connection(self):
         if not self.is_connection_established:
-            self.infocollector.avail_testers = []
-            self.infocollector.avail_Batches = []
-            self.infocollector.avail_Categories = []
+            self.infocollector.avail_testers.clear()
+            self.infocollector.available_batches.clear()
+            self.infocollector.available_categories.clear()
 
     def record_exists(self):
         request_dict = dict()
         request_dict["Serial"] = self.infocollector.id_Dict["GUI"]["Serial"].get_text()
         try:
             json_dump = json.dumps(request_dict)
-            response = requests.get(self.server_ip + 'if/exists/', json_dump, timeout=3)
-            if response.status_code == 200:
+            resp = requests.get(self.server_ip + 'if/exists/', json_dump, timeout=3)
+            if resp.status_code == 200:
                 return True
             else:
                 return False
@@ -211,27 +201,27 @@ class Server:
             self.infocollector.debug_info("Exception", e)
             return True
 
-    def send_json(self, post_dict):
-        json_data = json.dumps(post_dict)
-        response = requests.post(self.server_ip + 'if/data/', data=json_data, timeout=3)
-        if response.status_code == 200:
-            json_data = response.json()
+    def send_json(self, _post_dict):
+        json_data = json.dumps(_post_dict)
+        resp = requests.post(self.server_ip + 'if/data/', data=json_data, timeout=3)
+        # picture = self.infocollector.manage_Photos()
+        # if picture:
+        #    pictureTar = {'tarFile': open(picture,'rb')}
+        #    rP = requests.post(self.server_ip + 'if/pictures/' + str(self.computerID) + '/', files=pictureTar)
+
+        if resp.status_code == 200:
+            json_data = resp.json()
             self.computer_id = json_data['Index']
 
-            self.infocollector.debug_info("Information", "Code: " + str(response.status_code))
-            self.infocollector.debug_info("Information", "Reason: " + str(response.reason))
-            self.infocollector.debug_info("Information", "Content: " + str(response.content.decode('utf-8')))
-            self.infocollector.debug_info("Notice", json.dumps(post_dict, indent=4, sort_keys=True))
+            self.infocollector.debug_info("Information", "Code: " + str(resp.status_code))
+            self.infocollector.debug_info("Information", "Reason: " + str(resp.reason))
+            self.infocollector.debug_info("Information", "Content: " + str(resp.content.decode('utf-8')))
+            self.infocollector.debug_info("Notice", json.dumps(_post_dict, indent=4, sort_keys=True))
             return True
         else:
-            self.infocollector.debug_info("Error", "Error occurred! [ " + str(response.status_code) + " ] - " +
-                                          str(response.reason) + "\n" + str(response.content.decode('utf-8')))
+            error = "Error [" + str(resp.status_code) + "] - " + str(resp.reason) + "\n" + resp.content.decode('utf-8')
+            self.infocollector.debug_info("Error", error)
             return False
-
-    #       picture = self.infocollector.manage_Photos()
-    #       if picture:
-    #           pictureTar = {'tarFile': open(picture,'rb')}
-    #           rP = requests.post(self.server_ip + 'if/pictures/' + str(self.computerID) + '/', files=pictureTar)
 
     def request_print_qr(self, _printer):
         requests.post(self.server_ip + "website/edit/" + str(self.computer_id) + "/print_qr/" + _printer + "/")

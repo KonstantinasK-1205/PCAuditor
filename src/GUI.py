@@ -13,11 +13,10 @@ from Pages.NBSummary import *
 from Pages.NBTests import *
 
 
-# noinspection PyCallByClass
 class MyWindow(Gtk.Window):
     def __init__(self):
         global summary_thread, observations_thread, tests_thread, stress_thread, order_thread
-        Gtk.Window.__init__(self=self, default_width=800, default_height=640,
+        Gtk.Window.__init__(self, default_width=800, default_height=640,
                             border_width=3, window_position=1)
         self.MainBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.connect("key-press-event", events.main_event_parser)
@@ -210,12 +209,13 @@ class MyWindow(Gtk.Window):
             _lscpu = subprocess.check_output(['lscpu'], encoding='utf-8')
             _sensors_output = subprocess.check_output(['sensors', '-j'], encoding='utf-8')
 
+            _bug_text = datetime.datetime.now().strftime("%Y-%m-%d %H:%M") + "\n"
+            _bug_text += "Bug report of " + _id_model + " | SN: " + _id_serial + "\n\n"
+            _bug_text += "Problem description\n" + str(problem) + "\n-------------------------"
+
             bug_report = dict()
             bug_report["alias"] = "Report from " + str(tester)
-            bug_report["text"] = datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M") + "\n" + "Bug report of " + _id_model + \
-                                 " | SN: " + _id_serial + "\n\n" + "Problem description\n" + str(
-                problem) + "\n-------------------------"
+            bug_report["text"] = _bug_text
             bug_report["attachments"] = []
             commands = ["sensors -j", "lscpu -J", "lshw", "xrandr", "lspci -vv"]
             for output in commands:

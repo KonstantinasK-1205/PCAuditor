@@ -4,9 +4,9 @@
 
 **Major Changes:**
 - Moved all InfoCollector + Shell Script gather/parser and handling to seperate module, allowing for easier management and cleaner solution | *BatteryParser*
-- Improved battery parsing information effectiviness, and providing almost instant update | *BatteryParser*
+- Improved battery parsing information effectiveness, and providing almost instant update | *BatteryParser*
 - Moved all InfoCollector + Shell Script gather/parser and handling to seperate module, allowing for easier management and cleaner solution | *DriveGather*
-- Improved CDROM gathering/parsing, additionaly software will warn user if there is any optical disk inside computer | *DriveGather*
+- Improved CDROM gathering/parsing, additionally software will warn user if there is any optical disk inside computer | *DriveGather*
 - Now it is possible to "Quick Format" disk drive ( Wipping out partition tables ) | *DriveGather*
 - Added Bug Report, for better issues, error handling and fixing | *GUI*
 - Changed server GET address, in favor of dropping old GET support | *Server*
