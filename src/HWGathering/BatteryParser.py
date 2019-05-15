@@ -32,7 +32,7 @@ class BatteryParser:
             bat_dict["Factory Wh"] = self.get_factory_cap(bat_path, bat_dict["Min Voltage"])
 
             # Loading battery backup information from uevent
-            bat_uevent = self.init_battery_uevent(bat_path)
+            bat_uevent = self.init_battery_uevent(bat_path, bat_dict["Min Voltage"])
             for _key in bat_dict.keys():
                 if not bat_dict[_key] or bat_dict[_key] == 0.0:
                     bat_dict[_key] = bat_uevent[_key]
@@ -47,32 +47,46 @@ class BatteryParser:
             bat_dict["Wear Level"] = str(bat_dict["Wear Level"]) + "%"
             self.batteries.update({_battery: bat_dict})
 
-    def init_battery_uevent(self, _path):
+    def init_battery_uevent(self, _path, _bckp_voltage):
         bat_dict = {}
         uevent = self.read_file(_path, 'uevent')
+        voltage = _bckp_voltage
         for line in uevent.splitlines():
+            value = line.split('=')[1]
             if '_SERIAL' in line:
-                bat_dict["Serial"] = line.split('=')[1]
+                bat_dict["Serial"] = value
             elif '_MANUFACTURER' in line:
-                bat_dict["Manufacturer"] = line.split('=')[1]
+                bat_dict["Manufacturer"] = value
             elif '_MODEL_NAME' in line:
-                bat_dict["Model"] = line.split('=')[1]
+                bat_dict["Model"] = value
             elif '_STATUS' in line:
-                bat_dict["Status"] = self.get_status(_path)
+                bat_dict["Status"] = value
             elif '_VOLTAGE_MIN_DESIGN' in line:
-                bat_dict["Min Voltage"] = round(float(line.split('=')[1]) / 1000 / 1000, 2)
-            elif '_CURRENT_NOW' in line:
-                bat_dict["Current Use"] = round(float(line.split('=')[1]) * (bat_dict.get("Min Voltage", 1)
-                                                                             / 1000 / 1000), 2)
-            elif '_CHARGE_FULL_DESIGN' in line:
-                bat_dict["Factory Wh"] = round(float(line.split('=')[1]) * (bat_dict.get("Min Voltage", 1)
-                                                                            / 1000 / 1000), 2)
-            elif '_CHARGE_FULL' in line:
-                bat_dict["Maximum Wh"] = round(float(line.split('=')[1]) * (bat_dict.get("Min Voltage", 1)
-                                                                            / 1000 / 1000), 2)
-            elif '_CHARGE_NOW' in line:
-                bat_dict["Current Wh"] = round(float(line.split('=')[1]) * (bat_dict.get("Min Voltage", 1)
-                                                                            / 1000 / 1000), 2)
+                if not voltage or voltage == 0.0:
+                    voltage = round(float(value) / 1000 / 1000, 2)
+                    if voltage == 0.0:
+                        voltage = 1
+                bat_dict["Min Voltage"] = voltage
+            elif '_CURRENT_NOW' in line or '_POWER_NOW' in line:
+                if len(value) < 8:
+                    bat_dict["Current Use"] = round(float(value) * (voltage / 1000 / 1000), 2)
+                else:
+                    bat_dict["Current Use"] = round(float(value) / 1000 / 1000, 2)
+            elif '_CHARGE_FULL_DESIGN' in line or '_ENERGY_FULL_DESIGN' in line:
+                if len(value) < 8:
+                    bat_dict["Factory Wh"] = round(float(value) * (voltage / 1000 / 1000), 2)
+                else:
+                    bat_dict["Factory Wh"] = round(float(value) / 1000 / 1000, 2)
+            elif '_CHARGE_FULL' in line or '_ENERGY_FULL' in line:
+                if len(value) < 8:
+                    bat_dict["Maximum Wh"] = round(float(value) * (voltage / 1000 / 1000), 2)
+                else:
+                    bat_dict["Maximum Wh"] = round(float(value) / 1000 / 1000, 2)
+            elif '_CHARGE_NOW' in line or '_ENERGY_NOW' in line:
+                if len(value) < 8:
+                    bat_dict["Current Wh"] = round(float(value) * (voltage / 1000 / 1000), 2)
+                else:
+                    bat_dict["Current Wh"] = round(float(value) / 1000 / 1000, 2)
         return bat_dict
 
     @classmethod
@@ -103,8 +117,13 @@ class BatteryParser:
     @classmethod
     def get_current_use(cls, _path, _voltage):
         current_use = cls.read_file(_path, 'current_now')
-        if current_use and not current_use == 0:
+        if not current_use:
+            current_use = cls.read_file(_path, 'power_now')
+
+        if current_use and not current_use == 0 and len(current_use) < 8:
             current_use = round(float(current_use) / pow(1000, 2) * _voltage, 2)
+        elif current_use and not current_use == 0 and len(current_use) >= 8:
+            current_use = round(float(current_use) / pow(1000, 2), 2)
         else:
             current_use = 0.0
         return current_use
@@ -112,8 +131,13 @@ class BatteryParser:
     @classmethod
     def get_current_cap(cls, _path, _voltage):
         current_cap = cls.read_file(_path, 'charge_now')
-        if current_cap and not current_cap == 0:
+        if not current_cap:
+            current_cap = cls.read_file(_path, 'energy_now')
+
+        if current_cap and not current_cap == 0 and len(current_cap) < 8:
             current_cap = round(float(current_cap) / pow(1000, 2) * _voltage, 2)
+        elif current_cap and not current_cap == 0 and len(current_cap) >= 8:
+            current_cap = round(float(current_cap) / pow(1000, 2), 2)
         else:
             current_cap = 0.0
         return current_cap
@@ -121,8 +145,13 @@ class BatteryParser:
     @classmethod
     def get_maximum_cap(cls, _path, _voltage):
         maximum = cls.read_file(_path, 'charge_full')
-        if maximum and not maximum == 0:
+        if not maximum:
+            maximum = cls.read_file(_path, 'energy_full')
+
+        if maximum and not maximum == 0 and len(maximum) < 8:
             maximum = round(float(maximum) / pow(1000, 2) * _voltage, 2)
+        elif maximum and not maximum == 0 and len(maximum) >= 8:
+            maximum = round(float(maximum) / pow(1000, 2), 2)
         else:
             maximum = 0.0
         return maximum
@@ -130,8 +159,13 @@ class BatteryParser:
     @classmethod
     def get_factory_cap(cls, _path, _voltage):
         factory = cls.read_file(_path, 'charge_full_design')
-        if factory and not factory == 0:
+        if not factory:
+            factory = cls.read_file(_path, 'energy_full_design')
+
+        if factory and not factory == 0 and len(factory) < 8:
             factory = round(float(factory) / pow(1000, 2) * _voltage, 2)
+        elif factory and not factory == 0 and len(factory) >= 8:
+            factory = round(float(factory) / pow(1000, 2), 2)
         else:
             factory = 0.0
         return factory
@@ -176,4 +210,6 @@ class BatteryParser:
                         content = content.rstrip()
                 except OSError:
                     content = ''
-                return content
+        else:
+            content = None
+        return content

@@ -373,4 +373,4 @@ class Events:
             _bar.set_value(0)
         elif _data >= 100:
             _bar.set_value(100)
-        subprocess.Popen(['amixer', '-D', 'pulse', 'sset', 'Master', str(_data) + '%'], stdout=subprocess.DEVNULL)
+        subprocess.Popen(['amixer', 'sset', 'Master', str(_data) + '%'], stdout=subprocess.DEVNULL)

@@ -1137,7 +1137,7 @@ class InfoCollector:
 
     @staticmethod
     def get_init_volume():
-        amixer = subprocess.check_output(['amixer', '-D', 'pulse', 'sget', 'Master']).decode('utf-8', errors='ignore')
+        amixer = subprocess.check_output(['amixer', 'sget', 'Master']).decode('utf-8', errors='ignore')
         current_volume = re.search(r'\[([0-9]{1,3})%\]', amixer)
         if current_volume:
             current_volume = int(current_volume.group(1))
