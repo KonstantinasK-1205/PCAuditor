@@ -373,4 +373,26 @@ class Events:
             _bar.set_value(0)
         elif _data >= 100:
             _bar.set_value(100)
-        subprocess.Popen(['amixer', 'sset', 'Master', str(_data) + '%'], stdout=subprocess.DEVNULL)
+
+        try:
+            subprocess.check_output(['amixer', 'sset', 'Master', str(_data) + '%'], stderr=subprocess.DEVNULL).decode(
+                'utf-8', errors='ignore')
+        except subprocess.CalledProcessError:
+            subprocess.Popen(['amixer', '-c', '1', 'sset', 'Master', str(_data)], stderr=subprocess.DEVNULL)
+
+    def audio_state_changed(self, _event, _widget, _data):
+        if _widget.props.has_tooltip:
+            icon = self.infocollector.appResourcePath + "Icons/MediumVolumeR_x32.png"
+            _data = "on"
+        else:
+            icon = self.infocollector.appResourcePath + "Icons/Mute_x32.png"
+            _data = "off"
+
+        try:
+            subprocess.check_output(['amixer', 'sset', 'Master', str(_data)], stderr=subprocess.DEVNULL).decode('utf-8',
+                                                                                                                errors='ignore')
+        except subprocess.CalledProcessError:
+            subprocess.Popen(['amixer', '-c', '1', 'sset', 'Master', str(_data)], stderr=subprocess.DEVNULL)
+
+        _widget.set_image(Gtk.Image.new_from_file(filename=icon))
+        _widget.props.has_tooltip = not _widget.props.has_tooltip

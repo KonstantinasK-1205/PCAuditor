@@ -20,21 +20,21 @@ class NBTests:
         self.page_box = None
         self.display_box = None
         self.audio_box = None
+        self.audio_box1 = None
 
         self.mouseBox = None
         self.mouseSubBox = None
         self.MicrophoneButton = None
         self.MicLevelBar = None
+        self.audio_mute_state = None
 
         self.keyboardBox = None
         self.keyboardSubBox = None
         self.percentage_complete = None
 
         self.colourIndex = None
-        self.MicrophoneTestTime = None
-
-        self.threadElapsedTime = None
-        self.threadSecondsTime = None
+        self.mic_thread_life_time = None
+        self.mic_thread_lifespan = None
 
         self.PressedKeys = dict()  # Stores pressed keys as list
         self.PressedPercentage = 0  # Keeps pressed keys amount in %
@@ -54,7 +54,7 @@ class NBTests:
             '|Hx|', '|Hx|', '|Hx|', '|Hx|', '↑', '|Hx|', '|Hx|', 'KP_1', 'KP_2', 'KP_3', 'KP\n⮠', '|NL|',
             '|Hx|', '|Hx|', '|Hx|', '←', '↓', '→', '|Hx|', 'KP_0', 'KP_.']
 
-        self.isMicrophoneTestActive = False
+        self.is_mic_active = False
         self.isSpeakerTestActive = False
 
         self.kbd_bus = self.get_kbd_bus()
@@ -157,60 +157,88 @@ class NBTests:
         self.audio_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         audio_layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
 
+        mic_box = Gtk.Box()
         full_speaker_button = self.gui_base.create_button(_text="Full Test", _function=self.audio_test)
-        full_speaker_button = self.gui_base.add_image_to_button("Icons/BSpeaker.ico", full_speaker_button, True,
+        full_speaker_button = self.gui_base.add_image_to_button("Icons/AudioTest_x32.png", full_speaker_button, True,
                                                                 Gtk.PositionType.TOP)
 
-        sub_box = Gtk.Box()
+        self.MicrophoneButton = self.gui_base.create_button(_text="Mic", _function=self.audio_test)
+        self.MicrophoneButton = self.gui_base.add_image_to_button("Icons/Mic_x32.png", self.MicrophoneButton,
+                                                                  True, Gtk.PositionType.TOP)
+
+        speaker_box = Gtk.Box()
         left_speaker_button = self.gui_base.create_button(_text="Left", _function=self.audio_test)
-        left_speaker_button = self.gui_base.add_image_to_button("Icons/LSpeaker.ico", left_speaker_button, True,
+        left_speaker_button = self.gui_base.add_image_to_button("Icons/MediumVolumeL_x32.png", left_speaker_button,
+                                                                True,
                                                                 Gtk.PositionType.TOP)
 
         right_speaker_button = self.gui_base.create_button(_text="Right", _function=self.audio_test)
-        right_speaker_button = self.gui_base.add_image_to_button("Icons/RSpeaker.ico", right_speaker_button, True,
+        right_speaker_button = self.gui_base.add_image_to_button("Icons/MediumVolumeR_x32.png", right_speaker_button,
+                                                                 True,
                                                                  Gtk.PositionType.TOP)
 
-        self.MicrophoneButton = self.gui_base.create_button(_text="Mic", _function=self.audio_test)
-        self.MicrophoneButton = self.gui_base.add_image_to_button("Icons/Microphone.ico", self.MicrophoneButton,
-                                                                  True, Gtk.PositionType.TOP)
+        both_speaker_button = self.gui_base.create_button(_text="Both", _function=self.audio_test)
+        both_speaker_button = self.gui_base.add_image_to_button("Icons/BothSpeaker_x32.png", both_speaker_button, True,
+                                                                Gtk.PositionType.TOP)
 
-        sub_box.pack_start(left_speaker_button, True, True, 0)
-        sub_box.pack_start(self.MicrophoneButton, True, True, 0)
-        sub_box.pack_start(right_speaker_button, True, True, 0)
+        speaker_box.pack_start(left_speaker_button, True, True, 0)
+        speaker_box.pack_start(both_speaker_button, True, True, 0)
+        speaker_box.pack_start(right_speaker_button, True, True, 0)
+
+        self.audio_box1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 
         volume_bar = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL, min=0, max=100, step=1)
         volume_bar.set_value(self.infocollector.get_init_volume())
         volume_bar.connect('change-value', self.events.volume_changed, volume_bar)
-        self.MicLevelBar = Gtk.LevelBar(min_value=0.0, max_value=10.0, mode=Gtk.LevelBarMode.DISCRETE)
+        self.MicLevelBar = Gtk.LevelBar(min_value=0.0, max_value=20.0, mode=Gtk.LevelBarMode.DISCRETE)
 
-        audio_layout.pack_start(full_speaker_button, False, False, 0)
-        audio_layout.pack_start(sub_box, False, False, 0)
-        audio_layout.pack_start(volume_bar, False, False, 0)
+        mute_state_button = Gtk.Button.new()
+        if 'on' == self.infocollector.get_init_audio_state():
+            icon = self.infocollector.appResourcePath + "Icons/MediumVolumeR_x32.png"
+            mute_state_button.props.has_tooltip = False
+        else:
+            icon = self.infocollector.appResourcePath + "Icons/Mute_x32.png"
+            mute_state_button.props.has_tooltip = True
+        mute_state_button.set_image(Gtk.Image.new_from_file(filename=icon))
+        mute_state_button.set_always_show_image(True)
+        mute_state_button.set_image_position(Gtk.PositionType.TOP)
+        mute_state_button.connect('clicked', self.events.audio_state_changed, mute_state_button, self.audio_mute_state)
+
+        mic_box.pack_start(full_speaker_button, True, True, 0)
+        mic_box.pack_start(self.MicrophoneButton, True, True, 0)
+        audio_layout.pack_start(mic_box, False, False, 0)
+        audio_layout.pack_start(speaker_box, False, False, 0)
+
+        self.audio_box1.pack_start(volume_bar, True, True, 0)
+        self.audio_box1.pack_start(mute_state_button, False, False, 0)
+        audio_layout.pack_start(self.audio_box1, False, False, 0)
+
         audio_layout.pack_start(self.MicLevelBar, True, True, 0)
+
         self.audio_box.pack_start(audio_layout, True, True, 0)
         self.infocollector.debug_info("Information", "Test Page - Audio")
 
-    def audio_test(self, widget, _data=0):
-        source_button = widget.get_label()
+    def audio_test(self, _widget, _data=0):
+        source_button = _widget.get_label()
         if "Mic" in source_button:
-            if not self.isMicrophoneTestActive:
+            if not self.is_mic_active:
                 stream = self.init_microphone()
-                self.MicrophoneTestTime = 3  # 10
+                self.mic_thread_life_time = 5  # 10
                 self.MicrophoneButton.set_sensitive(False)
-                GLib.timeout_add(5, self.microphone_thread, stream, 5, self.gui_base, self.MicrophoneButton,
+                GLib.timeout_add(50, self.microphone_thread, stream, 50, self.gui_base, self.MicrophoneButton,
                                  self.MicLevelBar)
         elif "Full" in source_button:
-            if not self.isMicrophoneTestActive:
+            if not self.is_mic_active:
                 stream = self.init_microphone()
-                self.MicrophoneTestTime = 5
+                self.mic_thread_life_time = 5
                 self.MicrophoneButton.set_sensitive(False)
-                GLib.timeout_add(5, self.microphone_thread, stream, 5, self.gui_base, self.MicrophoneButton,
+                GLib.timeout_add(50, self.microphone_thread, stream, 50, self.gui_base, self.MicrophoneButton,
                                  self.MicLevelBar)
             if not self.isSpeakerTestActive:
-                GLib.timeout_add(0, self.speaker_test, source_button, widget)
+                GLib.timeout_add(0, self.speaker_test, "Full", _widget)
         else:
             if not self.isSpeakerTestActive:
-                GLib.timeout_add(0, self.speaker_test, source_button, widget)
+                GLib.timeout_add(0, self.speaker_test, source_button, _widget)
 
     def speaker_test(self, target_speaker, _data=None, _ev=''):
         self.isSpeakerTestActive = True
@@ -227,48 +255,56 @@ class NBTests:
     def init_microphone(self):
         try:
             p = pyaudio.PyAudio()
-            devices = {}
-            print("Input : " + str(pyaudio.PyAudio().get_default_input_device_info()))
-            print("Output: " + str(pyaudio.PyAudio().get_default_output_device_info()))
-            print("Count : " + str(pyaudio.PyAudio().get_device_count()))
+            # Get microphone device index, first we sort by type=input, and then we search for mic
+            microphone_index = 0
             for x in range(pyaudio.PyAudio().get_device_count()):
                 d = pyaudio.PyAudio().get_device_info_by_index(x)
-                devices[x] = {'name': d['name'], 'type': 'output' if d['maxInputChannels'] == 0 else 'input'}
-                print(str(x) + " " + str(devices[x]))
-            stream = p.open(format=pyaudio.paInt16,
-                            frames_per_buffer=1024,
+                if 'Analog' in d['name']: microphone_index = x
+            microphone_hw = p.get_device_info_by_index(microphone_index)
+            # print("")
+            # print("Microphone index is " + str(microphone_index))
+            # print("Microphone props is " + str(microphone_hw))
+            # print(" ")
+            stream = p.open(input_device_index=microphone_index,
+                            format=pyaudio.paInt16,
+                            frames_per_buffer=512,
                             rate=44100,
                             input=True,
-                            channels=2)
-            self.threadElapsedTime = 0
-            self.threadSecondsTime = -1
-            self.isMicrophoneTestActive = True
+                            channels=microphone_hw['maxInputChannels'])
+            self.mic_thread_lifespan = 0
+            self.is_mic_active = True
             return stream
         except Exception as e:
             self.infocollector.debug_info("Exception", "Microphone Initialization, has catched exception")
             self.infocollector.debug_info("Exception", e)
 
-    def microphone_thread(self, stream, update_time, gui_base, mic_button, mic_bar):
+    def microphone_thread(self, _stream, _update_time, _gui, _button, _bar):
         try:
-            self.threadElapsedTime += update_time / 1000
-            if self.threadElapsedTime >= self.MicrophoneTestTime:
-                gui_base.change_progressbar_value(mic_bar, 0)
-                gui_base.change_label(mic_button, "Mic")
-                mic_button.set_sensitive(True)
-                self.isMicrophoneTestActive = False
+            # Update this block only once per second
+            if self.mic_thread_lifespan % 1 == 0:
+                timeleft = int(self.mic_thread_life_time - self.mic_thread_lifespan)
+                _gui.change_label(_button, "Timeleft: " + str(timeleft) + " s")
+
+            # Update Thread elapsed time ( division from 1000 because it is ms)
+            self.mic_thread_lifespan += _update_time / 1000
+            self.mic_thread_lifespan = round(self.mic_thread_lifespan, 5)
+
+            # If thread has lived longer than mic test predefined value, then terminate
+            if self.mic_thread_lifespan > self.mic_thread_life_time:
+                # Set GUI elements to default values
+                _gui.change_progressbar_value(_bar, 0)
+                _gui.change_label(_button, "Mic")
+                _button.set_sensitive(True)
+                # Set mic test off and close stream
+                self.is_mic_active = False
+                _stream.close()
                 return False
 
-            if int(self.threadElapsedTime + 0.005) > self.threadSecondsTime:
-                self.threadSecondsTime = int(self.threadElapsedTime + 0.005)
-                timeleft = self.MicrophoneTestTime - self.threadElapsedTime + 0.005
-                gui_base.change_label(mic_button, "Timeleft: " + str(int(timeleft)) + " s")
-                self.infocollector.debug_info("Information", "Microphone Thread, Timeleft: " + str(int(timeleft)))
-
-            data = stream.read(1024, exception_on_overflow=False)
+            data = _stream.read(512, exception_on_overflow=False)
             rms = audioop.rms(data, 2)
-            rms = rms / 3200
+            rms = (rms / 32768) * 32
 
-            gui_base.change_progressbar_value(mic_bar, rms)
+            _gui.change_progressbar_value(_bar, rms)
             return True
         except Exception as e:
             self.infocollector.debug_info("Exception", "Microphone thread, has catched exception")

@@ -46,6 +46,7 @@ class MyWindow(Gtk.Window):
         infocollector.debug_info("Information", "GUI - Barebones initialized")
 
         if not infocollector.isSingleThread:
+            print("IFO")
             infocollector.debug_info("Information", "Starting to stop all gathering threads")
             infocollector.main_hw_thread.join()
             infocollector.display_thread.join()
@@ -62,6 +63,7 @@ class MyWindow(Gtk.Window):
             infocollector.appTitle + ' ' + infocollector.appVersion + ' | Server: ' + infocollector.server.server_ip)
 
         if not infocollector.isSingleThread:
+            print("IFO")
             infocollector.debug_info("Information", "GUI - Summary Page")
             summary_thread = threading.Thread(target=nbSummary.create_page)
             summary_thread.start()
@@ -99,7 +101,6 @@ class MyWindow(Gtk.Window):
         self.MainNoteBook.append_page(nbStress.page_box, Gtk.Label("Stress"))
         if infocollector.order_Name:
             self.MainNoteBook.append_page(nbOrder.page, Gtk.Label("Order"))
-        self.MainNoteBook.set_current_page(0)
 
         self.MainNoteBook.connect('key-release-event', events.get_notebook_page, self.MainNoteBook, 'main')
         self.MainNoteBook.connect('button-release-event', events.get_notebook_page, self.MainNoteBook, 'main')
@@ -112,6 +113,7 @@ class MyWindow(Gtk.Window):
         self.MainBox.pack_start(self.BottomContent, False, False, 0)
 
         if not infocollector.isSingleThread:
+            print("IFO")
             summary_thread.join()
             observations_thread.join()
             tests_thread.join()
@@ -124,22 +126,32 @@ class MyWindow(Gtk.Window):
         GLib.timeout_add(1000, nbStress.stress_thread, 1000, self.MainNoteBook, self)
 
     def create_bottom_content(self, box):
-        button_array = [["Close", self.single_action_click, ""],
-                        ["Restart", self.single_action_click, "Restart"],
-                        ["Shutdown", self.single_action_click, "Shutdown"],
+        button_array = [["Close", self.single_action_click, "Close", "Icons/Close_x32.png"],
+                        ["Restart", self.single_action_click, "Restart", "Icons/Restart_x32.png"],
+                        ["Shutdown", self.single_action_click, "Shutdown", "Icons/Shutdown_x32.png"],
                         ["", ],
                         ["", ],
                         ["", ],
-                        ["Open Cam", infocollector.get_camera, ""],
-                        ["Bug Report", self.bug_report_action, "Report"],
-                        ["ReInit Battery", self.re_init_battery, "ReInit Battery"],
-                        ["ReInit Drives", self.re_init_drive, "ReInit Drives"],
-                        ["Submit", self.submit_action, "Submit"]]
+                        ["Open Cam", infocollector.get_camera, "", "Icons/VideoCam_x32.png"],
+                        ["Bug Report", self.bug_report_action, "Report", "Icons/BugReport_x32.png"],
+                        ["ReInit Battery", self.re_init_battery, "ReInit Battery", "Icons/ReBattery_x32.png"],
+                        ["ReInit Drives", self.re_init_drive, "ReInit Drives", "Icons/ReDrive_x32.png"],
+                        ["Submit", self.submit_action, "Submit", "Icons/Email_x32.png"]]
         for bttn in button_array:
             if bttn[0] == "":
                 guiTemplate.create_label("\t\t", box)
             else:
-                button = guiTemplate.create_button(bttn[0], bttn[1], _field=bttn[2])
+                button = Gtk.Button.new()
+                image_add_pix_buf = GdkPixbuf.Pixbuf.new_from_file_at_size(
+                    filename=infocollector.appResourcePath + bttn[3], width=24, height=24)
+                button.set_image(Gtk.Image.new_from_pixbuf(image_add_pix_buf))
+                button.set_tooltip_text(bttn[0])
+                button.set_always_show_image(True)
+                button.set_image_position(Gtk.PositionType.TOP)
+                if not bttn[2]:
+                    button.connect('clicked', bttn[1])
+                else:
+                    button.connect('clicked', bttn[1], bttn[2])
                 box.pack_start(button, True, True, 0)
 
     def create_photo_bar(self, production_box_col1):
@@ -158,10 +170,10 @@ class MyWindow(Gtk.Window):
 
         if len(infocollector.pictures) == 0:
             image_add_pix_buf = GdkPixbuf.Pixbuf.new_from_file_at_size(
-                filename=infocollector.appResourcePath + "Icons/ImageAdd.png", width=64, height=64)
+                filename=infocollector.appResourcePath + "Icons/ImageAdd.png", width=32, height=32)
         else:
             image_add_pix_buf = GdkPixbuf.Pixbuf.new_from_file_at_size(
-                filename=infocollector.appResourcePath + "Icons/ImageAdd.png", width=128, height=128)
+                filename=infocollector.appResourcePath + "Icons/ImageAdd.png", width=64, height=64)
         image_add = Gtk.Image.new_from_pixbuf(image_add_pix_buf)
         image_add_event_box = Gtk.EventBox()
         image_add_event_box.connect('button-press-event', self.on_mouse_click_add_pic)
@@ -217,10 +229,8 @@ class MyWindow(Gtk.Window):
             bug_report["alias"] = "Report from " + str(tester)
             bug_report["text"] = _bug_text
             bug_report["attachments"] = []
-            commands = ["sensors -j", "lscpu -J", "lshw", "xrandr", "lspci -vv"]
+            commands = ["lshw", "lspci -vv", "lsusb", "xrandr", "lscpu -J", "sensors -j", "ip -j -p addr"]
             for output in commands:
-                # if 'psensors' in output and 'psutil' in sys.modules:
-                #     _output = psutil.sensors_temperatures()
                 _output = subprocess.check_output(output.split(' '), encoding='utf-8')
                 _report = dict()
                 _report["title"] = output.split(' ')[0].capitalize() + " Report"
@@ -229,7 +239,7 @@ class MyWindow(Gtk.Window):
                 bug_report["attachments"].append(_report)
 
             json_data = json.dumps(bug_report)
-            url = 'http://192.168.0.1:3000/hooks/zbm63BT5nmg2qFaLc/WHqeHPMXnRYB4gdE9z3rKcXKaAr44H7oamf3qsxBgZcTzASn'
+            url = 'http://78.60.47.113:3000/hooks/nAsxm5j7gKWrNQc94/vaTtpQ6KwGoejRDKKyMdWedH5e8X5hWvuCxFQDTHvKEav9im'
             response = requests.post(url, data=json_data)
             print(response.url)
             print(response.reason)
@@ -409,10 +419,10 @@ class MyWindow(Gtk.Window):
             infocollector.debug_info("Error", "There is a problem with batch!")
             guiTemplate.throw_error_win(self, "Error!", "There is a problem with batch!")
         else:
-            if nbStress.isGPUOverheating:
-                guiTemplate.set_multiline_text(nbObservations.add_note, nbStress.gpuOverheatingText)
-            if nbStress.isCPUOverheating:
-                guiTemplate.set_multiline_text(nbObservations.add_note, nbStress.cpuOverheatingText)
+            if nbStress.is_gpu_overheats:
+                guiTemplate.set_multiline_text(nbObservations.add_note, nbStress.gpu_warning_text)
+            if nbStress.is_cpu_overheats:
+                guiTemplate.set_multiline_text(nbObservations.add_note, nbStress.cpu_warning_text)
             self.acquire_dict_info()
             if infocollector.server.record_exists():
                 proceed = guiTemplate.throw_question_win(self, "Computer was already logged!",
@@ -516,23 +526,23 @@ class MyWindow(Gtk.Window):
             capacity = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Capacity"].get_text()
             health = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Health"].get_text()
             report = infocollector.drive_Dict["GUI"]["Drives"][keyword]["Description"]
-            rotation_speed = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Rotation Speed"]
-            locked = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Locked"]
+            rotation_speed = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Rotation Speed", "0")
+            locked = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Locked", "Unknown")
             ffactor = infocollector.drive_Dict["Collected"]["Drives"][keyword]["FFactor"]
-            disk_type = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Disk Type"]
-            poweron = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Power On"]
-            notes = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Notes"]
-            family = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Family"]
-            width = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Width"]
-            height = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Height"]
-            length = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Length"]
-            weight = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Weight"]
-            powerspin = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Power Spin"]
-            powerseek = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Power Seek"]
-            poweridle = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Power Idle"]
-            powerstan = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Power Standby"]
+            disk_type = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Type"]
+            poweron = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Power On", "0")
+            notes = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Notes", "")
+            family = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Family", "")
+            width = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Width", "")
+            height = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Height", "")
+            length = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Length", "")
+            weight = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Weight", "")
+            powerspin = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Power Spin", "")
+            powerseek = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Power Seek", "")
+            poweridle = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Power Idle", "")
+            powerstan = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Power Standby", "")
             # inspection = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Inspection Date"]
-            total_write = infocollector.drive_Dict["Collected"]["Drives"][keyword]["Total Writes"]
+            total_write = infocollector.drive_Dict["Collected"]["Drives"][keyword].get("Total Writes", "")
 
             if keyword not in self.post_dict["Drives"]:
                 self.post_dict["Drives"][keyword] = {}
@@ -545,7 +555,7 @@ class MyWindow(Gtk.Window):
             self.post_dict["Drives"][keyword]["Health"] = health
             self.post_dict["Drives"][keyword]["Description"] = report
             self.post_dict["Drives"][keyword]["Rotation Speed"] = rotation_speed
-            self.post_dict["Drives"][keyword]["Disk Type"] = disk_type
+            self.post_dict["Drives"][keyword]["Type"] = disk_type
             self.post_dict["Drives"][keyword]["Locked"] = locked
             self.post_dict["Drives"][keyword]["FFactor"] = ffactor
             self.post_dict["Drives"][keyword]["Power On"] = poweron
@@ -701,6 +711,8 @@ if isinstance(nbSummary.tog_other_box, Gtk.Box):
     nbSummary.tog_other_box.hide()
 if isinstance(nbSummary.tog_display_box, Gtk.Box):
     nbSummary.tog_display_box.hide()
+
+win.MainNoteBook.set_current_page(0)
 
 infocollector.debug_info("Information", "Application was launched!")
 Gtk.main()

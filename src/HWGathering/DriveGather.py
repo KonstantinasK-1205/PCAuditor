@@ -17,8 +17,9 @@ class DiskChecker:
     @staticmethod
     def get_init_info(_timeout=60):
         try:
-            info = subprocess.check_output('lsblk -J -o PATH,SERIAL,MODEL,LABEL,TRAN | grep -vE "sd.[0-9]+"',
-                                           shell=True, bufsize=4096, timeout=_timeout).decode('utf-8', errors='ignore')
+            info = subprocess.check_output(
+                'lsblk -J -o PATH,SERIAL,MODEL,LABEL,TRAN,SIZE | grep -vE "PCAuditor|usb" | grep -vE "sd.[0-9]+|mmcblk[0-9](boot|p)[0-9]|nvme[0-9](boot|p)[0-9]|loop[0-9]"',
+                shell=True, bufsize=4096, timeout=_timeout).decode('utf-8', errors='ignore')
             info = info.replace('null', '"null"')
         except subprocess.TimeoutExpired:
             info = None
@@ -37,51 +38,49 @@ class DiskChecker:
         try:
             info = subprocess.check_output(_command, shell=True, bufsize=4096,
                                            timeout=_timeout).decode('utf-8', errors='ignore')
-        except subprocess.TimeoutExpired:
-            info = None
-        except subprocess.CalledProcessError:
+        except subprocess.TimeoutExpired or subprocess.CalledProcessError:
             info = None
         return info
 
     @staticmethod
-    def grab_information(source, pattern, default_value='', flags=None):
+    def grab_information(_source, _pattern, _default_value='', _flags=None):
         try:
-            if not flags:
-                info = re.search(pattern, source)
+            if not _flags:
+                info = re.search(_pattern, _source)
             else:
-                info = re.search(pattern, source, flags=re.MULTILINE)
+                info = re.search(_pattern, _source, flags=re.MULTILINE)
 
             if info:
                 info = info.group(1).lstrip().replace('\n', ' ').rstrip()
-                if flags:
+                if _flags:
                     info = re.sub(' +', ' ', info)
             else:
-                info = default_value
+                info = _default_value
         except TypeError:
-            info = default_value
+            info = _default_value
         return info
 
     @staticmethod
-    def convert_size_to_bytes(number, si=None):
-        lowercase_si = si.lower()
-        number = int(number.split()[0])
+    def convert_size_to_bytes(_number, _si=None):
+        lowercase_si = _si.lower()
+        _number = int(_number.split()[0])
         if lowercase_si == "pb" or lowercase_si == "p":
-            number = number * (1024 ** 5)
+            _number = _number * (1024 ** 5)
         elif lowercase_si == "tb" or lowercase_si == "t":
-            number = number * (1024 ** 4)
+            _number = _number * (1024 ** 4)
         elif lowercase_si == "gb" or lowercase_si == "g":
-            number = number * (1024 ** 3)
+            _number = _number * (1024 ** 3)
         elif lowercase_si == "mb" or lowercase_si == "m":
-            number = number * (1024 ** 2)
+            _number = _number * (1024 ** 2)
         elif lowercase_si == "kb" or lowercase_si == "k":
-            number = number * (1024 ** 1)
+            _number = _number * (1024 ** 1)
         elif lowercase_si == "b":
-            number = number
-        return number
+            _number = _number
+        return _number
 
     @staticmethod
-    def convert_size_to_gb(number):
-        return str(int(number) / (1000 ** 3)).split('.')[0] + " GB"
+    def convert_size_to_gb(_number):
+        return str(int(_number) / (1000 ** 3)).split('.')[0] + " GB"
 
     def get_disk_drives(self):
         if not self.lsblk_output:
@@ -96,6 +95,8 @@ class DiskChecker:
         for _device in self.lsblk_output["blockdevices"]:
             block = _device["path"]
             serial = _device["serial"]
+            if _device['model'] == "null":
+                _device['model'] = "Unknown"
 
             info = dict()
             if 'sd' in block or 'mmcblk' in block or 'nvme' in block:
@@ -111,16 +112,26 @@ class DiskChecker:
                     self.get_disk_info(info[keyword], sentinel, hdparm, None)
 
                 elif 'mmcblk' in block:
+                    info[keyword]["Manufacturer"] = "Unknown"
                     info[keyword]["Model"] = _device["model"]
-                    info[keyword]["Interface"] = 'eMMC/MMC'
-                    info[keyword]["Disk Type"] = 'eMMC/MMC'
-                    info[keyword]["Rotation Speed"] = 'None'
+                    info[keyword]["Capacity"] = _device["size"]
+                    info[keyword]["Interface"] = "eMMC/MMC"
+                    info[keyword]["FFactor"] = "eMMC/MMC"
+                    info[keyword]["Type"] = 'SSD'
+                    info[keyword]["Rotation Speed"] = '-1'
+                    info[keyword]["Health"] = "-1"
+                    info[keyword]["Description"] = ""
 
                 elif 'nvme' in block:
+                    info[keyword]["Manufacturer"] = "WIP"
                     info[keyword]["Model"] = _device["model"]
+                    info[keyword]["Capacity"] = _device["size"]
                     info[keyword]["Interface"] = 'NVMe'
-                    info[keyword]["Disk Type"] = 'NVMe'
-                    info[keyword]["Rotation Speed"] = 'None'
+                    info[keyword]["FFactor"] = 'NVMe'
+                    info[keyword]["Type"] = 'SSD'
+                    info[keyword]["Rotation Speed"] = '-1'
+                    info[keyword]["Health"] = "WIP"
+                    info[keyword]["Description"] = "WIP"
                 self.drives['Drives'].update(info)
 
             elif 'sr' in block:
@@ -154,8 +165,9 @@ class DiskChecker:
         _info["Model"] = self.grab_information(_sentinel, "Hard Disk Model ID.*: (.*)")
         if 'mSATA' in _info["Model"]:
             _info["Model"] = _info["Model"].replace("mSATA ", '')
-            _info["Disk Type"] = "mSATA"
-            _info["Rotation Speed"] = "None"
+            _info["Type"] = "SSD"
+            _info["Interface"] = "mSATA"
+            _info["Rotation Speed"] = "-1"
         if 'SSD' in _info["Model"]:
             _info["Model"] = _info["Model"].replace("SSD ", '')
         if 'HGST' in _info["Model"]:
@@ -166,8 +178,8 @@ class DiskChecker:
             if not _info["Manufacturer"]:
                 _info["Manufacturer"] = 'LITEONIT'
 
-        if 'Samsung' in _info["Model"]:
-            _info["Model"] = _info["Model"].replace('Samsung ', '')
+        if 'SAMSUNG' in _info["Model"].upper():
+            _info["Model"] = _info["Model"].replace('SAMSUNG ', '')
             if not _info["Manufacturer"]:
                 _info["Manufacturer"] = 'Samsung'
 
@@ -195,25 +207,17 @@ class DiskChecker:
 
         if rpm:
             if 'ssd' in rpm.lower() or 'solid' in rpm.lower():
-                if not _info.get("Disk Type", ''):
-                    _info["Disk Type"] = "SSD"
-                if not _info.get("Rotation Speed", ''):
-                    _info["Rotation Speed"] = "None"
+                if not _info.get("Type", ''): _info["Type"] = "SSD"
+                if not _info.get("Rotation Speed", ''): _info["Rotation Speed"] = "-1"
             elif 'rpm' in rpm.lower():
-                if not _info.get("Disk Type", ''):
-                    _info["Disk Type"] = "HDD"
-                if not _info.get("Rotation Speed", ''):
-                    _info["Rotation Speed"] = rpm.replace(" RPM", '')
+                if not _info.get("Type", ''): _info["Type"] = "HDD"
+                if not _info.get("Rotation Speed", ''): _info["Rotation Speed"] = rpm.replace(" RPM", '')
             else:
-                if not _info.get("Disk Type", ''):
-                    _info["Disk Type"] = "Unknown"
-                if not _info.get("Rotation Speed", ''):
-                    _info["Rotation Speed"] = "Unknown"
+                if not _info.get("Type", ''): _info["Type"] = "Unknown"
+                if not _info.get("Rotation Speed", ''): _info["Rotation Speed"] = "-1"
         else:
-            if not _info.get("Disk Type", ''):
-                _info["Disk Type"] = "Unknown"
-            if not _info.get("Rotation Speed", ''):
-                _info["Rotation Speed"] = "Unknown"
+            if not _info.get("Type", ''): _info["Type"] = "Unknown"
+            if not _info.get("Rotation Speed", ''): _info["Rotation Speed"] = "-1"
 
         #
         _info["FFactor"] = self.grab_information(_sentinel, "Form Factor.*: (.* (?=inch))")
@@ -260,8 +264,10 @@ class DiskChecker:
         try:
             subprocess.check_output('shred ' + _block + ' -f -s 3M -n 1 -v', shell=True,
                                     bufsize=4096, timeout=60).decode('utf-8', errors='ignore')
+            subprocess.check_output('wipefs -af ' + _block, shell=True,
+                                    bufsize=4096, timeout=60).decode('utf-8', errors='ignore')
         except subprocess.TimeoutExpired:
-            print("Error Occurred!")
+            print("Command timeout has expired! Something went wrong with " + str(_block))
 
 
 disk_check = DiskChecker()

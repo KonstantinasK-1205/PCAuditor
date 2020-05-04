@@ -90,6 +90,20 @@ class GUITemplate:
             spin_button.connect('value-changed', _function)
         return spin_button
 
+    def create_image_button(self, _image, _text, _function, _args, _is_always_shown=True,
+                            _image_pos=Gtk.PositionType.TOP):
+        button = Gtk.Button.new_from_icon_name(self.infocollector.appResourcePath + _image, 32)
+        button.set_tooltip_text(_text)
+        button.set_always_show_image(_is_always_shown)
+        button.set_image_position(_image_pos)
+        if _function:
+            if not _args:
+                button.connect('clicked', _function)
+            else:
+                button.connect('clicked', _function, _args)
+
+        return button
+
     def add_image_to_button(self, _image, _button, _is_always_shown=True, _image_pos=Gtk.PositionType.TOP):
         icon = Gtk.Image.new_from_file(filename=self.infocollector.appResourcePath + "/" + _image)
         _button.set_image(icon)
@@ -245,7 +259,7 @@ class GUITemplate:
     @staticmethod
     def throw_error_win(parent_win, title, content):
         dialog = Gtk.MessageDialog(parent=parent_win, flags=0, message_type=Gtk.MessageType.ERROR,
-                                   buttons=Gtk.ButtonsType.CANCEL, text=title, secondary_text=content)
+                                   buttons=Gtk.ButtonsType.CANCEL, text=title, secondary_text=content, modal=True)
         dialog.run()
         dialog.destroy()
 
