@@ -368,6 +368,16 @@ class Events:
         return True
 
     @staticmethod
+    def brightness_changed(_event, _widget, _data, _bar, _max):
+        if _data <= 0:
+            _bar.set_value(0)
+        elif _data >= 100:
+            _bar.set_value(100)
+
+        _data = int(int(_data) * _max / 100)
+        subprocess.check_output('echo ' + str(_data) + ' > /sys/class/backlight/intel_backlight/brightness', shell=True)
+
+    @staticmethod
     def volume_changed(_event, _widget, _data, _bar):
         if _data <= 0:
             _bar.set_value(0)

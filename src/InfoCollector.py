@@ -430,6 +430,8 @@ class InfoCollector:
 
     def init_display_information(self):
         self.screen_Dict["Collected"] = {}
+        self.screen_Dict["Collected"]["Max Brightness"] = self.get_max_brightness()
+        self.screen_Dict["Collected"]["Current Brightness"] = self.get_current_brightness()
         self.screen_Dict["GUI"] = {}
         self.get_display()
         self.get_camera()
@@ -922,6 +924,16 @@ class InfoCollector:
             string = re.sub(r' +', ' ', string)
             string = re.sub(r' +$', '', string.strip())
         return string
+
+    @staticmethod
+    def get_current_brightness():
+        info = subprocess.check_output(['cat', '/sys/class/backlight/intel_backlight/brightness'])
+        return int(info)
+
+    @staticmethod
+    def get_max_brightness():
+        info = subprocess.check_output(['cat', '/sys/class/backlight/intel_backlight/max_brightness'])
+        return int(info)
 
     @staticmethod
     def create_running_thread(_func):

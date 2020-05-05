@@ -116,6 +116,16 @@ class NBTests:
     def create_display_page(self):
         self.display_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.gui_base.create_button("Automatic", self.display_test, self.display_box, "Automatic")
+
+        max_brightness = self.infocollector.screen_Dict["Collected"]["Max Brightness"]
+        current_brightness = self.infocollector.screen_Dict["Collected"]["Current Brightness"]
+        brightness_slider = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
+                                                     min=0, max=(max_brightness / max_brightness) * 100,
+                                                     step=(max_brightness / max_brightness) * 10)
+        brightness_slider.set_value(current_brightness)
+        brightness_slider.connect('change-value', self.events.brightness_changed, brightness_slider, max_brightness)
+
+        self.display_box.pack_start(brightness_slider, False, True, 0)
         self.gui_base.create_label('', self.display_box)
         self.gui_base.create_label('', self.display_box)
         self.gui_base.create_button("White", self.display_test, self.display_box, "White")
